@@ -59,7 +59,7 @@ git clone https://github.com/eshanized/ERPCT.git
 cd ERPCT
 
 # Create and activate a virtual environment (recommended)
-python -m venv venv
+python -m venv .venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
