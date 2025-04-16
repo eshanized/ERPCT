@@ -1,0 +1,40 @@
+from setuptools import setup, find_packages
+
+setup(
+    name="ERPCT",
+    version="0.1.0",
+    packages=find_packages(),
+    include_package_data=True,
+    install_requires=[
+        "PyGObject>=3.42.0",
+        "pycairo>=1.20.0",
+        "paramiko>=2.11.0",
+        "requests>=2.28.1",
+        "aiohttp>=3.8.3",
+        "pysmb>=1.2.8",
+        "pyOpenSSL>=22.0.0",
+        "beautifulsoup4>=4.11.1",
+        "tqdm>=4.64.0",
+        "colorama>=0.4.5",
+        "pysocks>=1.7.1",
+        "python-dotenv>=0.20.0",
+        "validators>=0.20.0",
+        "cryptography>=37.0.4",
+        "matplotlib>=3.5.3",
+        "pandas>=1.4.3",
+        "pyzmq>=23.2.0",
+        "sqlalchemy>=1.4.40",
+        "asyncio>=3.4.3",
+        "aiodns>=3.0.0",
+    ],
+    entry_points={
+        "console_scripts": [
+            "erpct=src.main:main",
+        ],
+    },
+    author="Your Name",
+    author_email="your.email@example.com",
+    description="Enhanced Rapid Password Cracking Tool with GTK GUI",
+    keywords="security, penetration testing, password cracking, brute force",
+    python_requires=">=3.8",
+)
