@@ -350,6 +350,71 @@ class HTTPFormProtocol(ProtocolBase):
         """
         return "http-form"
     
+    def get_options(self) -> Dict[str, Dict[str, Any]]:
+        """Return configurable options for HTTP Form protocol.
+        
+        Returns:
+            Dictionary of configuration options
+        """
+        return {
+            "url": {
+                "type": "string",
+                "default": "",
+                "description": "URL of the login form"
+            },
+            "method": {
+                "type": "select",
+                "default": "POST",
+                "choices": ["POST", "GET"],
+                "description": "HTTP method to use"
+            },
+            "form_data": {
+                "type": "string",
+                "default": "username=^USER^&password=^PASS^",
+                "description": "Form data (use ^USER^ and ^PASS^ as placeholders)"
+            },
+            "success_match": {
+                "type": "string",
+                "default": "",
+                "description": "Regex pattern for successful login"
+            },
+            "failure_match": {
+                "type": "string",
+                "default": "",
+                "description": "Regex pattern for failed login"
+            },
+            "csrf_token_field": {
+                "type": "string",
+                "default": "",
+                "description": "Name of CSRF token field (if required)"
+            },
+            "csrf_token_regex": {
+                "type": "string",
+                "default": "",
+                "description": "Regex to extract CSRF token"
+            },
+            "timeout": {
+                "type": "integer",
+                "default": 10,
+                "description": "Connection timeout in seconds"
+            },
+            "verify_ssl": {
+                "type": "boolean",
+                "default": True,
+                "description": "Verify SSL certificates"
+            },
+            "follow_redirects": {
+                "type": "boolean",
+                "default": True,
+                "description": "Follow HTTP redirects"
+            },
+            "user_agent": {
+                "type": "string",
+                "default": "ERPCT HTTP Form Authentication",
+                "description": "User-Agent header to use"
+            }
+        }
+    
     def cleanup(self) -> None:
         """Clean up resources.
         

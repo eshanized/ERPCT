@@ -279,6 +279,65 @@ class HTTP(ProtocolBase):
         """
         return "HTTP"
     
+    def get_options(self) -> Dict[str, Dict[str, Any]]:
+        """Return configurable options for this protocol.
+        
+        Returns:
+            Dictionary of configuration options
+        """
+        return {
+            "url": {
+                "type": "string",
+                "default": "",
+                "description": "Url"
+            },
+            "method": {
+                "type": "string",
+                "default": "GET",
+                "description": "Method"
+            },
+            "auth_type": {
+                "type": "string",
+                "default": "basic",
+                "description": "Auth Type"
+            },
+            "timeout": {
+                "type": "integer",
+                "default": 10,
+                "description": "Timeout"
+            },
+            "verify_ssl": {
+                "type": "boolean",
+                "default": True,
+                "description": "Verify Ssl"
+            },
+            "follow_redirects": {
+                "type": "boolean",
+                "default": True,
+                "description": "Follow Redirects"
+            },
+            "headers": {
+                "type": "string",
+                "default": "{}",
+                "description": "Headers"
+            },
+            "proxy": {
+                "type": "string",
+                "default": "None",
+                "description": "Proxy"
+            },
+            "success_codes": {
+                "type": "string",
+                "default": "[200, 201, 202, 203, 204, 205, 206, 207, 208, 226]",
+                "description": "Success Codes"
+            },
+            "failure_codes": {
+                "type": "string",
+                "default": "[401, 403]",
+                "description": "Failure Codes"
+            }
+        }
+    
     def cleanup(self) -> None:
         """Clean up resources."""
         if self._session:

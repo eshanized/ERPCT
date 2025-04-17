@@ -225,6 +225,32 @@ class Telnet(ProtocolBase):
         """
         return "Telnet"
 
+    def get_options(self) -> Dict[str, Dict[str, Any]]:
+        """Return configurable options for this protocol.
+        
+        Returns:
+            Dictionary of configuration options
+        """
+        return {
+            "host": {
+                "type": "string",
+                "default": "",
+                "description": "Hostname or IP address"
+            },
+            "port": {
+                "type": "integer",
+                "default": self.default_port,
+                "description": "Port number"
+            },
+            "timeout": {
+                "type": "integer",
+                "default": 10,
+                "description": "Connection timeout in seconds"
+            }
+        }
+    
+
+
 
 # Register protocol
 from src.protocols import protocol_registry

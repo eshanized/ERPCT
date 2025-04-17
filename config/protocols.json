@@ -23,6 +23,102 @@
       "class": "HTTPFormProtocol",
       "description": "HTTP Form-based authentication",
       "category": "web"
+    },
+    {
+      "name": "http",
+      "display_name": "HTTP",
+      "module": "src.protocols.http",
+      "class": "HTTPProtocol",
+      "description": "HTTP Basic Authentication",
+      "category": "web"
+    },
+    {
+      "name": "https",
+      "display_name": "HTTPS",
+      "module": "src.protocols.https",
+      "class": "HTTPSProtocol",
+      "description": "HTTPS Secure Web Protocol",
+      "category": "web"
+    },
+    {
+      "name": "rdp",
+      "display_name": "RDP",
+      "module": "src.protocols.rdp",
+      "class": "RDPProtocol",
+      "description": "Remote Desktop Protocol",
+      "category": "remote_access"
+    },
+    {
+      "name": "smb",
+      "display_name": "SMB",
+      "module": "src.protocols.smb",
+      "class": "SMBProtocol",
+      "description": "Server Message Block file sharing protocol",
+      "category": "file_transfer"
+    },
+    {
+      "name": "smtp",
+      "display_name": "SMTP",
+      "module": "src.protocols.smtp",
+      "class": "SMTPProtocol",
+      "description": "Simple Mail Transfer Protocol",
+      "category": "mail"
+    },
+    {
+      "name": "pop3",
+      "display_name": "POP3",
+      "module": "src.protocols.pop3",
+      "class": "POP3Protocol",
+      "description": "Post Office Protocol version 3",
+      "category": "mail"
+    },
+    {
+      "name": "imap",
+      "display_name": "IMAP",
+      "module": "src.protocols.imap",
+      "class": "IMAPProtocol",
+      "description": "Internet Message Access Protocol",
+      "category": "mail"
+    },
+    {
+      "name": "ldap",
+      "display_name": "LDAP",
+      "module": "src.protocols.ldap",
+      "class": "LDAPProtocol",
+      "description": "Lightweight Directory Access Protocol",
+      "category": "directory_services"
+    },
+    {
+      "name": "mysql",
+      "display_name": "MySQL",
+      "module": "src.protocols.mysql",
+      "class": "MySQLProtocol",
+      "description": "MySQL Database Server",
+      "category": "database"
+    },
+    {
+      "name": "postgres",
+      "display_name": "PostgreSQL",
+      "module": "src.protocols.postgres",
+      "class": "PostgreSQLProtocol",
+      "description": "PostgreSQL Database Server",
+      "category": "database"
+    },
+    {
+      "name": "telnet",
+      "display_name": "Telnet",
+      "module": "src.protocols.telnet",
+      "class": "TelnetProtocol",
+      "description": "Telnet remote access protocol",
+      "category": "remote_access"
+    },
+    {
+      "name": "vnc",
+      "display_name": "VNC",
+      "module": "src.protocols.vnc",
+      "class": "VNCProtocol",
+      "description": "Virtual Network Computing",
+      "category": "remote_access"
     }
   ]
 }

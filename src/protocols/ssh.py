@@ -202,6 +202,55 @@ class SSH(ProtocolBase):
         """
         return "ssh"
     
+    def get_options(self) -> Dict[str, Dict[str, Any]]:
+        """Return configurable options for SSH protocol.
+        
+        Returns:
+            Dictionary of configuration options
+        """
+        return {
+            "host": {
+                "type": "string",
+                "default": "",
+                "description": "SSH server hostname or IP address"
+            },
+            "port": {
+                "type": "integer",
+                "default": self.default_port,
+                "description": "SSH server port"
+            },
+            "timeout": {
+                "type": "integer",
+                "default": 10,
+                "description": "Connection timeout in seconds"
+            },
+            "allow_agent": {
+                "type": "boolean",
+                "default": False,
+                "description": "Allow SSH agent for authentication"
+            },
+            "look_for_keys": {
+                "type": "boolean",
+                "default": False,
+                "description": "Automatically search for SSH keys"
+            },
+            "auth_timeout": {
+                "type": "integer",
+                "default": 5,
+                "description": "Authentication timeout in seconds"
+            },
+            "banner_timeout": {
+                "type": "integer",
+                "default": 5,
+                "description": "SSH banner timeout in seconds"
+            },
+            "verbose_logging": {
+                "type": "boolean",
+                "default": False,
+                "description": "Enable verbose SSH library logging"
+            }
+        }
+    
     def cleanup(self) -> None:
         """Clean up any resources.
         

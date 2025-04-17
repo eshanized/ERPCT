@@ -95,9 +95,25 @@ class ProtocolConfigurator(Gtk.Box):
             
             # Create a default config with host to prevent initialization errors
             default_config = {}
-            if protocol_name.lower() == "ftp":
+            
+            # Host-based protocols
+            if protocol_name.lower() in ["ftp", "ssh", "telnet", "smtp", "pop3", "imap", "vnc", "smb", "ldap"]:
                 default_config["host"] = "example.com"  # Default placeholder host
-                
+            
+            # URL-based protocols 
+            elif protocol_name.lower() in ["http-form", "httpform", "http", "https"]:
+                default_config["url"] = "https://example.com/login"  # Default placeholder URL
+            
+            # Database protocols
+            elif protocol_name.lower() in ["mysql", "postgres", "postgresql"]:
+                default_config["host"] = "example.com"
+                default_config["database"] = "example"
+            
+            # RDP protocol
+            elif protocol_name.lower() == "rdp":
+                default_config["host"] = "example.com"
+                default_config["domain"] = ""
+            
             protocol = protocol_class(default_config)
             
             # Update info label

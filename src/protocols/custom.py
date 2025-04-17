@@ -568,6 +568,112 @@ class Custom(ProtocolBase):
         """
         return self.name_value
 
+    def get_options(self) -> Dict[str, Dict[str, Any]]:
+        """Return configurable options for this protocol.
+        
+        Returns:
+            Dictionary of configuration options
+        """
+        return {
+            "name": {
+                "type": "string",
+                "default": "Custom Protocol",
+                "description": "Name"
+            },
+            "host": {
+                "type": "string",
+                "default": "",
+                "description": "Host"
+            },
+            "port": {
+                "type": "integer",
+                "default": 0,
+                "description": "Port"
+            },
+            "timeout": {
+                "type": "integer",
+                "default": 10,
+                "description": "Timeout"
+            },
+            "method_type": {
+                "type": "string",
+                "default": "script",
+                "description": "Method Type"
+            },
+            "script_path": {
+                "type": "string",
+                "default": "",
+                "description": "Script Path"
+            },
+            "function_name": {
+                "type": "string",
+                "default": "test_auth",
+                "description": "Function Name"
+            },
+            "command": {
+                "type": "string",
+                "default": "",
+                "description": "Command"
+            },
+            "username_placeholder": {
+                "type": "string",
+                "default": "{username}",
+                "description": "Username Placeholder"
+            },
+            "password_placeholder": {
+                "type": "string",
+                "default": "{password}",
+                "description": "Password Placeholder"
+            },
+            "success_exit_code": {
+                "type": "integer",
+                "default": 0,
+                "description": "Success Exit Code"
+            },
+            "success_output": {
+                "type": "string",
+                "default": "",
+                "description": "Success Output"
+            },
+            "failure_output": {
+                "type": "string",
+                "default": "",
+                "description": "Failure Output"
+            },
+            "request_template": {
+                "type": "string",
+                "default": "{}",
+                "description": "Request Template"
+            },
+            "success_criteria": {
+                "type": "string",
+                "default": "{}",
+                "description": "Success Criteria"
+            },
+            "failure_criteria": {
+                "type": "string",
+                "default": "{}",
+                "description": "Failure Criteria"
+            },
+            "username_jsonpath": {
+                "type": "string",
+                "default": "$.username",
+                "description": "Username Jsonpath"
+            },
+            "password_jsonpath": {
+                "type": "string",
+                "default": "$.password",
+                "description": "Password Jsonpath"
+            },
+            "headers": {
+                "type": "string",
+                "default": "{"Content-Type": "application/json"}",
+                "description": "Headers"
+            }
+        }
+    
+
+
 
 # Register protocol
 from src.protocols import protocol_registry

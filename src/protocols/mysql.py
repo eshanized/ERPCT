@@ -213,6 +213,27 @@ class MySQL(ProtocolBase):
         """
         return "MySQL"
 
+    def get_options(self) -> Dict[str, Dict[str, Any]]:
+        """Return configurable options for this protocol.
+        
+        Returns:
+            Dictionary of configuration options
+        """
+        return {
+            "host": {
+                "type": "string",
+                "default": "",
+                "description": "Host"
+            },
+            "port": {
+                "type": "string",
+                "default": "self.",
+                "description": "Port"
+            }
+        }
+    
+
+
 
 # Register protocol
 from src.protocols import protocol_registry
