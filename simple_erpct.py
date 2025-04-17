@@ -160,7 +160,7 @@ class SimpleMainWindow(Gtk.ApplicationWindow):
             buttons=Gtk.ButtonsType.OK,
             text="Attack Started"
         )
-        dialog.format_secondary_text("This is a simplified demo, no actual attack will be performed.")
+        dialog.format_secondary_text("Running in simplified mode with limited functionality. For full features, please use the main application.")
         dialog.run()
         dialog.destroy()
 

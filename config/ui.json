@@ -1,0 +1,32 @@
+{
+  "theme": {
+    "default": "system",
+    "available": ["light", "dark", "system"]
+  },
+  "layout": {
+    "sidebar_width": 250,
+    "log_height": 200,
+    "results_panel_height": 300,
+    "status_bar_enabled": true,
+    "toolbar_style": "both",
+    "toolbar_position": "top"
+  },
+  "fonts": {
+    "main": "Sans 10",
+    "monospace": "Monospace 10",
+    "log": "Monospace 9"
+  },
+  "colors": {
+    "success": "#27ae60",
+    "warning": "#f39c12",
+    "error": "#e74c3c",
+    "info": "#3498db"
+  },
+  "behavior": {
+    "auto_scroll_logs": true,
+    "show_tooltips": true,
+    "confirm_exit": true,
+    "remember_window_size": true,
+    "remember_last_session": true
+  }
+}

@@ -63,8 +63,8 @@ class ProtocolRegistry:
             from src.protocols.telnet import Telnet
             self._protocols["telnet"] = Telnet
             logger.debug("Registered protocol: telnet")
-        except ImportError as e:
-            logger.error(f"Telnet protocol requires telnetlib module: {str(e)}")
+        except (ImportError, ModuleNotFoundError) as e:
+            logger.error(f"Telnet protocol requires telnetlib module which may not be available in your Python version: {str(e)}")
             # Skip telnet registration
     
     def _load_protocol_module(self, module_name: str, class_name: str, protocol_name: str) -> None:

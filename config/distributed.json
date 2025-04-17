@@ -1,0 +1,31 @@
+{
+  "enabled": false,
+  "mode": "client",
+  "server": {
+    "host": "127.0.0.1",
+    "port": 8989,
+    "max_clients": 10,
+    "require_authentication": true,
+    "auth_key": "",
+    "log_client_activity": true,
+    "heartbeat_interval": 30
+  },
+  "client": {
+    "server_host": "127.0.0.1",
+    "server_port": 8989,
+    "auth_key": "",
+    "reconnect_attempts": 3,
+    "reconnect_delay": 5,
+    "heartbeat_interval": 30
+  },
+  "task_distribution": {
+    "method": "even_split",
+    "chunk_size": 1000,
+    "priority_clients": []
+  },
+  "result_handling": {
+    "local_save": true,
+    "report_back": true,
+    "report_interval": 10
+  }
+}

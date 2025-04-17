@@ -242,12 +242,38 @@ class POP3(ProtocolBase):
             "host": {
                 "type": "string",
                 "default": "",
-                "description": "Host"
+                "description": "POP3 Server hostname or IP"
             },
             "port": {
-                "type": "string",
-                "default": "self.",
-                "description": "Port"
+                "type": "integer",
+                "default": self.default_port,
+                "description": "Port number"
+            },
+            "use_ssl": {
+                "type": "boolean",
+                "default": True,
+                "description": "Use SSL connection"
+            },
+            "use_tls": {
+                "type": "boolean",
+                "default": False,
+                "description": "Use TLS (STARTTLS)"
+            },
+            "timeout": {
+                "type": "integer",
+                "default": 10,
+                "description": "Connection timeout in seconds"
+            },
+            "verify_cert": {
+                "type": "boolean",
+                "default": True,
+                "description": "Verify SSL certificate"
+            },
+            "auth_method": {
+                "type": "select",
+                "default": "",
+                "description": "Authentication method",
+                "choices": ["", "APOP"]
             }
         }
     

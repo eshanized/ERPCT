@@ -254,7 +254,7 @@ def run_simplified_gui():
                 buttons=Gtk.ButtonsType.OK,
                 text="Attack Started"
             )
-            dialog.format_secondary_text("This is a simplified demo, no actual attack will be performed.")
+            dialog.format_secondary_text("Running in fallback mode with limited functionality. Please check the logs for details on why the full application couldn't start.")
             dialog.run()
             dialog.destroy()
 

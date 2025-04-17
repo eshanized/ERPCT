@@ -1,0 +1,27 @@
+{
+  "general": {
+    "default_target_port": 22,
+    "save_results": true,
+    "auto_save_results": true,
+    "results_dir": "~/.erpct/results"
+  },
+  "logging": {
+    "level": "info",
+    "console_logging": true,
+    "file_logging": true,
+    "log_dir": "~/.erpct/logs",
+    "log_format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  },
+  "attack": {
+    "default_threads": 1,
+    "default_timeout": 10,
+    "default_delay": 0.0,
+    "stop_on_success": false
+  },
+  "gui": {
+    "confirm_exit": true,
+    "show_tooltips": true,
+    "dark_mode": false,
+    "auto_scroll_logs": true
+  }
+}

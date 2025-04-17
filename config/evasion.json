@@ -1,0 +1,72 @@
+{
+  "techniques": [
+    {
+      "name": "random_delay",
+      "display_name": "Random Delay",
+      "module": "src.evasion.timing",
+      "class": "RandomDelay",
+      "description": "Add random delay between attempts to avoid rate detection",
+      "enabled": true,
+      "default_config": {
+        "min_delay": 0.5,
+        "max_delay": 3.0
+      }
+    },
+    {
+      "name": "user_agent_rotation",
+      "display_name": "User-Agent Rotation",
+      "module": "src.evasion.http",
+      "class": "UserAgentRotation",
+      "description": "Rotate user agents for web-based protocols",
+      "enabled": true,
+      "default_config": {
+        "user_agents_file": "data/user_agents.txt",
+        "rotation_strategy": "random"
+      }
+    },
+    {
+      "name": "ip_rotation",
+      "display_name": "IP Rotation",
+      "module": "src.evasion.network",
+      "class": "IPRotation",
+      "description": "Rotate source IP addresses using multiple interfaces",
+      "enabled": false,
+      "default_config": {
+        "interfaces": [],
+        "use_proxies": false,
+        "proxy_list": "data/proxies.txt"
+      }
+    },
+    {
+      "name": "distributed_attack",
+      "display_name": "Distributed Attack",
+      "module": "src.evasion.distributed",
+      "class": "DistributedAttack",
+      "description": "Distribute attack across multiple nodes",
+      "enabled": false,
+      "default_config": {
+        "config_file": "config/distributed.json"
+      }
+    },
+    {
+      "name": "timing_pattern",
+      "display_name": "Timing Pattern",
+      "module": "src.evasion.timing",
+      "class": "TimingPattern",
+      "description": "Use non-regular timing patterns to avoid detection",
+      "enabled": false,
+      "default_config": {
+        "pattern": "random_burst",
+        "min_delay": 1.0,
+        "max_delay": 10.0,
+        "burst_size": 5
+      }
+    }
+  ],
+  "global": {
+    "max_attempts_per_ip": 100,
+    "cool_down_period": 300,
+    "fail2ban_aware": true,
+    "stealth_level": "medium"
+  }
+}

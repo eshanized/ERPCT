@@ -7,15 +7,24 @@ This module provides a GUI for scanning and discovering network targets.
 """
 
 import gi
-import random
 import threading
 import time
 import ipaddress
+import socket
+import os
+import json
 
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GLib, Gdk
 
 from src.utils.logging import get_logger
+
+# Import nmap for network scanning
+try:
+    import nmap
+    NMAP_AVAILABLE = True
+except ImportError:
+    NMAP_AVAILABLE = False
 
 
 class NetworkScanner(Gtk.Box):
@@ -30,6 +39,20 @@ class NetworkScanner(Gtk.Box):
         self.scan_thread = None
         self.stop_scan_flag = False
         self.target_callback = None
+        
+        # Check for nmap
+        if not NMAP_AVAILABLE:
+            self.logger.error("python-nmap is required but not installed")
+            dialog = Gtk.MessageDialog(
+                transient_for=None,
+                flags=0,
+                message_type=Gtk.MessageType.ERROR,
+                buttons=Gtk.ButtonsType.OK,
+                text="Missing Dependency"
+            )
+            dialog.format_secondary_text("python-nmap is required for network scanning.\nPlease install it with 'pip install python-nmap'.")
+            dialog.run()
+            dialog.destroy()
         
         # Scan configuration section
         config_frame = Gtk.Frame(label="Scan Configuration")
@@ -320,106 +343,101 @@ class NetworkScanner(Gtk.Box):
         self.scan_thread.start()
     
     def _run_scan(self, ip_range, start_port, end_port):
-        """Run the network scan.
+        """Run the network scan using python-nmap.
         
         Args:
             ip_range: IP range to scan
             start_port: Starting port
             end_port: Ending port
         """
-        self.logger.info(f"Starting scan: {ip_range}, ports {start_port}-{end_port}")
-        
-        # In a real implementation, this would use proper network scanning libraries
-        # This is just a simulation for the UI
+        self.logger.info(f"Starting nmap scan: {ip_range}, ports {start_port}-{end_port}")
         
         try:
-            network = ipaddress.ip_network(ip_range, strict=False)
-            total_ips = network.num_addresses
-            total_ports = end_port - start_port + 1
-            
-            # Total work units
-            total_work = total_ips
-            
-            # For simulation purposes, we'll limit the number of hosts to display
-            max_hosts = min(total_ips, 10)
-            
-            # Track progress
-            current_work = 0
+            # Initialize the nmap scanner
+            nm = nmap.PortScanner()
             
             # Scan speed factor (1-5)
-            speed = self.speed_scale.get_value()
-            delay = 6 - speed  # Higher speed means less delay
+            speed = int(self.speed_scale.get_value())
+            timing_template = min(5, speed)  # T0-T5 in nmap
             
-            # Sample services for common ports
-            common_services = {
-                21: ("FTP", "vsftpd 2.3.4"),
-                22: ("SSH", "OpenSSH 7.4"),
-                23: ("Telnet", "Linux telnetd"),
-                25: ("SMTP", "Postfix 9.6.5"),
-                53: ("DNS", "BIND 9.11.4"),
-                80: ("HTTP", "Apache 2.4.6"),
-                110: ("POP3", "Dovecot"),
-                143: ("IMAP", "Courier IMAP 4.17.1"),
-                443: ("HTTPS", "Apache 2.4.6 + OpenSSL"),
-                3306: ("MySQL", "MySQL 5.7.32"),
-                3389: ("RDP", "Xrdp 0.9.9"),
-                8080: ("HTTP-Proxy", "Squid 3.5.20"),
-            }
+            # Determine scan arguments based on options
+            arguments = f"-T{timing_template}"
             
-            # Sample operating systems
-            os_options = [
-                "Linux 5.4.0",
-                "Windows Server 2019",
-                "FreeBSD 13.0",
-                "Cisco IOS 15.2",
-                "VMware ESXi 7.0",
-                "Ubuntu 20.04 LTS",
-                "CentOS 8.3"
-            ]
+            if self.ping_check.get_active():
+                arguments += " -PE"  # ICMP echo
+            else:
+                arguments += " -Pn"  # Skip ping
+                
+            if self.tcp_check.get_active():
+                arguments += " -sT"  # TCP connect scan
             
-            # Scan each IP in the network
-            host_count = 0
-            for i, ip in enumerate(network):
+            if self.service_check.get_active():
+                arguments += " -sV"  # Version detection
+                
+            # Port range
+            port_range = f"{start_port}-{end_port}"
+            
+            # Update status
+            GLib.idle_add(self._update_scan_status, f"Starting scan on {ip_range}...", 0.1, False)
+            
+            # Run the scan
+            self.logger.debug(f"Running nmap with arguments: {arguments}")
+            nm.scan(ip_range, port_range, arguments)
+            
+            # Process results
+            hosts_count = len(nm.all_hosts())
+            if hosts_count == 0:
+                GLib.idle_add(self._update_scan_status, "No hosts found", 1.0, True)
+                return
+                
+            self.logger.info(f"Found {hosts_count} hosts")
+            
+            # Process each host
+            for i, host in enumerate(nm.all_hosts()):
                 if self.stop_scan_flag:
                     GLib.idle_add(self._update_scan_status, "Scan stopped", 0.0, True)
                     break
-                
-                current_work = i + 1
-                progress = current_work / total_work
-                
-                # For simulation, only add some random hosts as "up"
-                if host_count < max_hosts and random.random() < 0.7:
-                    # This IP is "up"
-                    ip_str = str(ip)
-                    hostname = f"host-{ip_str.replace('.', '-')}.local"
-                    status = "Up"
-                    os_name = random.choice(os_options)
                     
-                    # Determine number of open ports (for sample data)
-                    num_open_ports = random.randint(1, 8)
-                    
-                    # Add to host list
-                    current_time = time.strftime("%Y-%m-%d %H:%M:%S")
-                    host_row = [ip_str, hostname, status, os_name, num_open_ports, current_time]
-                    
-                    GLib.idle_add(self._add_host, host_row)
-                    host_count += 1
-                    
-                    # Simulate port scanning delay
-                    time.sleep(delay / 10)
+                # Calculate progress
+                progress = (i + 1) / hosts_count
                 
-                # Update status
-                status_msg = f"Scanning {ip} ({current_work}/{total_work})"
-                GLib.idle_add(self._update_scan_status, status_msg, progress, False)
+                # Skip hosts that are down
+                if nm[host].state() != "up":
+                    continue
+                    
+                # Get host information
+                hostname = nm[host].hostname() or f"host-{host.replace('.', '-')}.local"
+                status = "Up"
                 
-                # Small delay for simulation
-                time.sleep(delay / 50)
+                # Get OS information if available
+                os_name = "Unknown"
+                if 'osmatch' in nm[host] and nm[host]['osmatch']:
+                    os_match = nm[host]['osmatch'][0]
+                    os_name = os_match.get('name', "Unknown")
+                
+                # Count open ports
+                open_ports_count = 0
+                for proto in nm[host].all_protocols():
+                    ports = nm[host][proto].keys()
+                    for port in ports:
+                        if nm[host][proto][port]['state'] == 'open':
+                            open_ports_count += 1
+                
+                # Add to host list
+                current_time = time.strftime("%Y-%m-%d %H:%M:%S")
+                host_row = [host, hostname, status, os_name, open_ports_count, current_time]
+                
+                GLib.idle_add(self._add_host, host_row)
+                GLib.idle_add(self._update_scan_status, f"Scanning {host} ({i+1}/{hosts_count})", progress, False)
+                
+                # Small delay to prevent UI freezing
+                time.sleep(0.01)
             
             # Scan completed
-            GLib.idle_add(self._update_scan_status, f"Scan completed: found {host_count} hosts", 1.0, True)
+            GLib.idle_add(self._update_scan_status, f"Scan completed: found {hosts_count} hosts", 1.0, True)
             
         except Exception as e:
-            self.logger.error(f"Scan error: {str(e)}")
+            self.logger.error(f"Nmap scan error: {str(e)}")
             GLib.idle_add(self._update_scan_status, f"Error: {str(e)}", 0.0, True)
     
     def _add_host(self, host_row):
@@ -463,56 +481,57 @@ class NetworkScanner(Gtk.Box):
         # Clear previous port data
         self.port_store.clear()
         
-        # In a real implementation, this would load actual port data
-        # For now, generate sample port data
-        num_ports = model.get_value(iter, 4)
-        self._populate_sample_ports(ip_address, num_ports)
+        # Populate port data for the selected host using nmap
+        self._populate_sample_ports(ip_address, model.get_value(iter, 4))
     
     def _populate_sample_ports(self, ip, num_ports):
-        """Populate sample port data for the selected host.
+        """Populate port data for the selected host using nmap.
         
         Args:
             ip: IP address of the host
             num_ports: Number of open ports to generate
         """
-        # Common services for sample data
-        common_ports = {
-            21: ("tcp", "FTP", "vsftpd 2.3.4"),
-            22: ("tcp", "SSH", "OpenSSH 7.4"),
-            23: ("tcp", "Telnet", "Linux telnetd"),
-            25: ("tcp", "SMTP", "Postfix 9.6.5"),
-            53: ("udp", "DNS", "BIND 9.11.4"),
-            80: ("tcp", "HTTP", "Apache 2.4.6"),
-            110: ("tcp", "POP3", "Dovecot"),
-            143: ("tcp", "IMAP", "Courier IMAP 4.17.1"),
-            443: ("tcp", "HTTPS", "Apache 2.4.6 + OpenSSL"),
-            3306: ("tcp", "MySQL", "MySQL 5.7.32"),
-            3389: ("tcp", "RDP", "Xrdp 0.9.9"),
-            8080: ("tcp", "HTTP-Proxy", "Squid 3.5.20"),
-        }
+        self.status_bar.set_text(f"Scanning ports on {ip}...")
         
-        # Pick random ports from the common list
-        common_port_numbers = list(common_ports.keys())
-        
-        # If we need more ports than in our common list, add some random high ports
-        all_ports = common_port_numbers.copy()
-        for _ in range(max(0, num_ports - len(common_port_numbers))):
-            all_ports.append(random.randint(1025, 49151))
-        
-        # Randomly select the required number of ports
-        selected_ports = random.sample(all_ports, min(num_ports, len(all_ports)))
-        
-        # Add port data to the store
-        for port in selected_ports:
-            if port in common_ports:
-                protocol, service, version = common_ports[port]
-            else:
-                protocol = "tcp" if random.random() < 0.8 else "udp"
-                service = "unknown"
-                version = ""
+        try:
+            # Initialize the nmap scanner
+            nm = nmap.PortScanner()
             
-            status = "open"
-            self.port_store.append([port, protocol, service, version, status])
+            # Scan common ports with service detection
+            nm.scan(ip, arguments='-sV -F')  # Fast scan with version detection
+            
+            # Check if host was found and is up
+            if ip not in nm.all_hosts() or nm[ip].state() != "up":
+                self.port_store.append([0, "none", "Host not available", "", "closed"])
+                self.status_bar.set_text("Ready")
+                return
+                
+            # Get all open ports
+            port_info = []
+            for proto in nm[ip].all_protocols():
+                ports = nm[ip][proto].keys()
+                for port in ports:
+                    if nm[ip][proto][port]['state'] == 'open':
+                        service = nm[ip][proto][port]['name'] if nm[ip][proto][port]['name'] != '' else "unknown"
+                        version = nm[ip][proto][port]['product'] + " " + nm[ip][proto][port]['version'] if nm[ip][proto][port]['product'] != '' else ""
+                        port_info.append((port, proto, service, version.strip(), "open"))
+            
+            # Sort by port number
+            port_info.sort(key=lambda x: x[0])
+            
+            # Add port information to the store
+            for info in port_info:
+                self.port_store.append(list(info))
+                
+            # If no open ports were found
+            if len(self.port_store) == 0:
+                self.port_store.append([0, "none", "No open ports found", "", "closed"])
+                
+        except Exception as e:
+            self.logger.error(f"Error scanning ports: {str(e)}")
+            self.port_store.append([0, "none", f"Error: {str(e)}", "", "error"])
+            
+        self.status_bar.set_text("Ready")
     
     def _on_add_target(self, button):
         """Handle adding the selected host to targets."""
