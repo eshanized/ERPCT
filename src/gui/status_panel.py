@@ -353,3 +353,13 @@ class StatusPanel(Gtk.Box):
         self.speed_label.set_text(f"{stats['attempts_per_second']:.1f}/s")
         self.success_label.set_text(str(stats['successful_attempts']))
         self.errors_label.set_text(str(stats['error_attempts']))
+
+    def get_active_attacks(self):
+        """Get list of active attacks.
+        
+        Returns:
+            list: List of active attack objects
+        """
+        if self.attack and self.attack.status.running:
+            return [self.attack]
+        return []

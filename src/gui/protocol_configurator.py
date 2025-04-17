@@ -92,7 +92,13 @@ class ProtocolConfigurator(Gtk.Box):
         try:
             # Get protocol class and create an instance
             protocol_class = protocol_registry.get_protocol(protocol_name)
-            protocol = protocol_class({})
+            
+            # Create a default config with host to prevent initialization errors
+            default_config = {}
+            if protocol_name.lower() == "ftp":
+                default_config["host"] = "example.com"  # Default placeholder host
+                
+            protocol = protocol_class(default_config)
             
             # Update info label
             info_text = f"{protocol.__doc__ or 'No description'}\nDefault port: {protocol.default_port}"

@@ -174,6 +174,45 @@ class FTPProtocol(ProtocolBase):
         """
         return "ftp"
     
+    def get_options(self) -> Dict[str, Dict[str, Any]]:
+        """Return configurable options for FTP protocol.
+        
+        Returns:
+            Dictionary of configuration options
+        """
+        return {
+            "host": {
+                "type": "string",
+                "default": "",
+                "description": "FTP server hostname or IP address"
+            },
+            "port": {
+                "type": "integer",
+                "default": self.default_port,
+                "description": "FTP server port"
+            },
+            "timeout": {
+                "type": "integer",
+                "default": 10,
+                "description": "Connection timeout in seconds"
+            },
+            "use_ssl": {
+                "type": "boolean",
+                "default": False,
+                "description": "Use FTPS (FTP over SSL/TLS)"
+            },
+            "passive_mode": {
+                "type": "boolean",
+                "default": True,
+                "description": "Use passive mode for data transfers"
+            },
+            "test_command": {
+                "type": "string",
+                "default": "PWD",
+                "description": "FTP command to verify successful login"
+            }
+        }
+    
     def cleanup(self) -> None:
         """Clean up any resources.
         
