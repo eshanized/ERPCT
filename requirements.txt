@@ -1,12 +1,12 @@
 # Core dependencies
 PyGObject>=3.42.0        # GTK bindings for Python
 pycairo>=1.20.0          # Required for PyGObject
-paramiko>=2.11.0         # SSH protocol support
-requests>=2.28.1         # HTTP protocol support
+paramiko>=2.7.0          # SSH protocol support
+requests>=2.25.0         # HTTP protocol support
 aiohttp>=3.8.3           # Async HTTP requests
 pysmb>=1.2.8             # SMB protocol support
 pyOpenSSL>=22.0.0        # SSL/TLS support
-beautifulsoup4>=4.11.1   # HTML parsing
+beautifulsoup4>=4.9.0     # HTML parsing
 tqdm>=4.64.0             # Progress bars
 colorama>=0.4.5          # Colored terminal output
 pysocks>=1.7.1           # SOCKS proxy support
@@ -28,3 +28,13 @@ retry>=0.9.2             # Retry mechanisms
 uvloop>=0.16.0           # Fast event loop
 memray>=1.5.0            # Memory profiling
 numpy>=1.23.2            # Numerical operations
+
+# Optional GUI dependencies (uncomment if needed)
+# PyGObject>=3.36.0
+
+# Development dependencies (uncomment if needed)
+# pytest>=6.0.0
+# black>=21.5b2
+# flake8>=3.9.0
+# isort>=5.9.0
+# mypy>=0.812

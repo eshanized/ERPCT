@@ -60,7 +60,7 @@ cd ERPCT
 
 # Create and activate a virtual environment (recommended)
 python -m venv .venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
@@ -100,7 +100,7 @@ pacman -S mingw-w64-x86_64-gtk3 mingw-w64-x86_64-python mingw-w64-x86_64-python-
 
 ```bash
 # Launch ERPCT GUI
-erpct
+erpct-gui
 ```
 
 ### Command Line Interface
@@ -113,58 +113,32 @@ erpct --target 192.168.1.100 --protocol ssh --username admin --wordlist resource
 erpct --target targets.txt --protocol http-form --port 8080 --form-data "username=^USER^&password=^PASS^" --success-match "Welcome" --username-list users.txt --wordlist passlist.txt --threads 10 --delay 2
 ```
 
+## Using the GUI
+
+1. **Target Configuration (Target Tab)**
+   - Input target host or load a target list from a file
+   - Configure username(s) and password(s) or wordlists
+
+2. **Attack Configuration (Attack Tab)**
+   - Select the protocol to use
+   - Configure attack-specific parameters
+   - Set performance options like threads and delay
+
+3. **Wordlist Management (Wordlists Tab)**
+   - Import, view, and manage wordlists
+   - Generate custom wordlists (feature in development)
+
+4. **Execution and Monitoring (Execution Tab)**
+   - Start the attack and monitor progress
+   - View real-time statistics and estimated completion time
+
+5. **Results (Results Tab)**
+   - View and analyze successful credentials
+   - Export results in various formats
+
 ## 📖 Documentation
 
-### Getting Started
-
-1. **Target Configuration**
-   - Single Target: Enter the IP address or hostname and port
-   - Multiple Targets: Import a list of targets from a file
-
-2. **Protocol Selection**
-   - Choose the protocol to attack from the dropdown menu
-   - Configure protocol-specific parameters
-
-3. **Credentials**
-   - Specify usernames (single or list)
-   - Choose a wordlist for passwords or generate one
-
-4. **Attack Options**
-   - Set thread count and connection timeout
-   - Configure proxy settings if needed
-   - Adjust evasion parameters
-
-5. **Execution**
-   - Start the attack and monitor progress
-   - View and save results
-
-### Advanced Usage
-
-#### Wordlist Management
-
-ERPCT includes a wordlist manager for creating, importing, and manipulating password lists:
-
-- Import from standard formats (txt, csv)
-- Apply transformation rules to generate variants
-- Analyze and optimize wordlists for specific targets
-- Combine multiple wordlists with deduplication
-
-#### Evasion Techniques
-
-Configure attack patterns to minimize detection:
-
-- Randomized delays between attempts
-- Dynamic timing based on server response
-- Connection throttling
-- IP rotation through proxies
-
-#### Custom Protocol Extensions
-
-Extend ERPCT with custom protocol modules:
-
-1. Create a new protocol file in `src/protocols/`
-2. Implement the required interfaces from `src/protocols/base.py`
-3. Register the protocol in `config/protocols.json`
+For more detailed documentation, see the [docs](docs/) directory.
 
 ## 🔐 Security Considerations
 

@@ -1,0 +1,28 @@
+{
+  "protocols": [
+    {
+      "name": "ssh",
+      "display_name": "SSH",
+      "module": "src.protocols.ssh",
+      "class": "SSHProtocol",
+      "description": "Secure Shell protocol",
+      "category": "remote_access"
+    },
+    {
+      "name": "ftp",
+      "display_name": "FTP",
+      "module": "src.protocols.ftp",
+      "class": "FTPProtocol",
+      "description": "File Transfer Protocol",
+      "category": "file_transfer"
+    },
+    {
+      "name": "http-form",
+      "display_name": "HTTP Form",
+      "module": "src.protocols.http_form",
+      "class": "HTTPFormProtocol",
+      "description": "HTTP Form-based authentication",
+      "category": "web"
+    }
+  ]
+}
