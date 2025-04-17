@@ -153,14 +153,72 @@ class SimpleMainWindow(Gtk.ApplicationWindow):
     
     def _on_start_clicked(self, button):
         """Handle the start button click."""
+        # Get the input values
+        target_host = ""
+        protocol = ""
+        username = ""
+        password = ""
+        
+        # Find the necessary widgets
+        for child in self.notebook.get_children():
+            if child.get_parent() == self.notebook:
+                # Check which tab
+                tab_label = self.notebook.get_tab_label_text(child)
+                
+                if tab_label == "Target":
+                    # Look for target host and protocol inputs in child's children
+                    for box in child.get_children():
+                        if isinstance(box, Gtk.Box) and box.get_orientation() == Gtk.Orientation.HORIZONTAL:
+                            for widget in box.get_children():
+                                if isinstance(widget, Gtk.Entry) and box.get_children()[0].get_text() == "Target Host:":
+                                    target_host = widget.get_text()
+                                elif isinstance(widget, Gtk.ComboBoxText) and box.get_children()[0].get_text() == "Protocol:":
+                                    protocol = widget.get_active_text()
+                
+                elif tab_label == "Attack":
+                    # Look for username and password inputs
+                    for box in child.get_children():
+                        if isinstance(box, Gtk.Box) and box.get_orientation() == Gtk.Orientation.HORIZONTAL:
+                            for widget in box.get_children():
+                                if isinstance(widget, Gtk.Entry):
+                                    if box.get_children()[0].get_text() == "Username:":
+                                        username = widget.get_text()
+                                    elif box.get_children()[0].get_text() == "Password:":
+                                        password = widget.get_text()
+        
+        # Simple validation
+        message = "Attack Started"
+        secondary_text = "Running in simplified mode with limited functionality."
+        
+        if not target_host:
+            message = "Attack Failed"
+            secondary_text = "Target host is required."
+        elif not protocol:
+            message = "Attack Failed"
+            secondary_text = "Protocol is required."
+        elif not username:
+            message = "Attack Failed"
+            secondary_text = "Username is required."
+        elif not password:
+            message = "Attack Failed"
+            secondary_text = "Password is required."
+        else:
+            # Log the attempt
+            logger.info(f"Attack started - Target: {target_host}, Protocol: {protocol}, Username: {username}")
+            secondary_text = f"Starting attack on {target_host} using {protocol} protocol with username '{username}'."
+            
+            # Add informative log entry
+            logger.info(f"In a full version, this would attempt to connect to {target_host} using {protocol} protocol with the provided credentials.")
+        
+        # Show dialog with status
         dialog = Gtk.MessageDialog(
             transient_for=self,
             flags=0,
             message_type=Gtk.MessageType.INFO,
             buttons=Gtk.ButtonsType.OK,
-            text="Attack Started"
+            text=message
         )
-        dialog.format_secondary_text("Running in simplified mode with limited functionality. For full features, please use the main application.")
+        dialog.format_secondary_text(secondary_text)
         dialog.run()
         dialog.destroy()
 

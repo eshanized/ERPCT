@@ -8,10 +8,11 @@ This module provides support for Telnet authentication attacks.
 
 import re
 import socket
-import telnetlib
 import time
 from typing import Dict, List, Optional, Tuple, Any
 
+# Use our custom telnetlib implementation
+from src.utils.telnetlib import Telnet as TelnetClient
 from src.protocols.base import ProtocolBase
 from src.utils.logging import get_logger
 
@@ -77,34 +78,46 @@ class Telnet(ProtocolBase):
         telnet_client = None
         
         try:
-            # Create Telnet client
-            telnet_client = telnetlib.Telnet()
+            # Create Telnet client using our custom implementation
+            telnet_client = TelnetClient()
             
             # Connect with timeout
             telnet_client.open(self.host, self.port, self.timeout)
             
-            # Wait for login prompt
-            response = telnet_client.read_until(b"dummy", self.read_timeout)
+            # Wait for login prompt - using a generic expected value since we're using regex
+            response = telnet_client.read_until(b"\n", self.read_timeout)
             
             # Check for login prompt
             if not self.login_pattern.search(response):
-                return False, f"Login prompt not found: {response.decode('ascii', errors='ignore')}"
+                # Try to read more if we didn't get the prompt
+                additional_response = telnet_client.read_until(b"\n", self.read_timeout)
+                response += additional_response
+                if not self.login_pattern.search(response):
+                    return False, f"Login prompt not found: {response.decode('ascii', errors='ignore')}"
             
             # Send username
             telnet_client.write(username.encode('ascii') + b"\r\n")
             
-            # Wait for password prompt
-            response = telnet_client.read_until(b"dummy", self.read_timeout)
+            # Wait for password prompt 
+            response = telnet_client.read_until(b"\n", self.read_timeout)
             
             # Check for password prompt
             if not self.password_pattern.search(response):
-                return False, f"Password prompt not found: {response.decode('ascii', errors='ignore')}"
+                # Try to read more if we didn't get the prompt
+                additional_response = telnet_client.read_until(b"\n", self.read_timeout)
+                response += additional_response
+                if not self.password_pattern.search(response):
+                    return False, f"Password prompt not found: {response.decode('ascii', errors='ignore')}"
             
             # Send password
             telnet_client.write(password.encode('ascii') + b"\r\n")
             
-            # Wait for success or failure message
-            response = telnet_client.read_until(b"dummy", self.read_timeout)
+            # Wait for response - read multiple lines to look for success/failure patterns
+            response = b""
+            for _ in range(5):  # Try to read up to 5 lines
+                response += telnet_client.read_until(b"\n", self.read_timeout)
+                if self.success_pattern.search(response) or self.failure_pattern.search(response):
+                    break
             
             # Convert to string for logging
             response_str = response.decode('ascii', errors='ignore')
@@ -253,5 +266,8 @@ class Telnet(ProtocolBase):
 
 
 # Register protocol
-from src.protocols import protocol_registry
-protocol_registry.register_protocol("telnet", Telnet)
+
+def register_protocol():
+    """Register this protocol with the protocol registry."""
+    from src.protocols import register_protocol
+    register_protocol("telnet", Telnet)

@@ -312,5 +312,10 @@ class LDAP(ProtocolBase):
 
 
 # Register protocol
-from src.protocols import protocol_registry
-protocol_registry.register_protocol("ldap", LDAP)
+
+
+
+def register_protocol():
+    """Register this protocol with the protocol registry."""
+    from src.protocols import register_protocol
+    register_protocol("ldap", LDAP)

@@ -224,6 +224,6 @@ class FTPProtocol(ProtocolBase):
 
 # Register this protocol with the registry
 def register_protocol():
-    """Register this protocol in the registry."""
-    from src.protocols import protocol_registry
-    protocol_registry.register_protocol("ftp", FTPProtocol)
+    """Register this protocol with the protocol registry."""
+    from src.protocols import register_protocol
+    register_protocol("ftp", FTPProtocol)

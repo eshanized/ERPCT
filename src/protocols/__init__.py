@@ -2,169 +2,169 @@
 # -*- coding: utf-8 -*-
 
 """
-ERPCT Protocol modules.
-This package contains protocol implementations for different authentication methods.
+Protocol registry for ERPCT.
+This module provides the protocol registry for registering and accessing protocols.
 """
 
 import os
 import sys
-import json
 import importlib
-from typing import Dict, List, Type, Any
+import inspect
+from typing import Dict, List, Type, Callable, Any
 
 from src.protocols.base import ProtocolBase
 from src.utils.logging import get_logger
 
 logger = get_logger(__name__)
 
-
-class ProtocolRegistry:
-    """Registry for protocol implementations."""
-    
-    def __init__(self):
-        """Initialize the protocol registry."""
-        self._protocols = {}
-        self._config_file = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 
-            "config", 
-            "protocols.json"
-        )
-        self._loaded = False
-    
-    def _register_builtin_protocols(self):
-        """Register built-in protocol implementations."""
-        # Import protocols directly to avoid issues with class name detection
-        try:
-            from src.protocols.ssh import SSH
-            self._protocols["ssh"] = SSH
-            logger.debug("Registered protocol: ssh")
-        except ImportError as e:
-            logger.error(f"Error loading SSH protocol: {str(e)}")
-        
-        try:
-            from src.protocols.ftp import FTPProtocol
-            self._protocols["ftp"] = FTPProtocol
-            logger.debug("Registered protocol: ftp")
-        except ImportError as e:
-            logger.error(f"Error loading FTP protocol: {str(e)}")
-            
-        # Add HTTP Form protocol if it exists
-        try:
-            from src.protocols.http_form import HTTPFormProtocol
-            self._protocols["http-form"] = HTTPFormProtocol
-            logger.debug("Registered protocol: http-form")
-        except ImportError:
-            # Not an error, just not implemented yet
-            pass
-            
-        # Add Telnet protocol if telnetlib is available
-        try:
-            import telnetlib  # Check if the module is available
-            from src.protocols.telnet import Telnet
-            self._protocols["telnet"] = Telnet
-            logger.debug("Registered protocol: telnet")
-        except (ImportError, ModuleNotFoundError) as e:
-            logger.error(f"Telnet protocol requires telnetlib module which may not be available in your Python version: {str(e)}")
-            # Skip telnet registration
-    
-    def _load_protocol_module(self, module_name: str, class_name: str, protocol_name: str) -> None:
-        """Load a protocol module and register it.
-        
-        Args:
-            module_name: Name of the module to import
-            class_name: Name of the protocol class in the module
-            protocol_name: Name to register the protocol under
-        """
-        try:
-            module = importlib.import_module(module_name)
-            protocol_class = getattr(module, class_name)
-            self._protocols[protocol_name] = protocol_class
-            logger.debug(f"Registered protocol: {protocol_name}")
-        except ImportError as e:
-            # Handle missing dependencies by logging but not raising an exception
-            if "No module named" in str(e):
-                logger.error(f"Failed to load protocol {protocol_name}: {str(e)}")
-                return  # Continue without registering this protocol
-            logger.error(f"Error loading protocol {protocol_name}: {str(e)}")
-            # Do not raise the exception to allow other protocols to load
-        except AttributeError as e:
-            logger.error(f"Class {class_name} not found in module {module_name}: {str(e)}")
-            # Do not raise the exception to allow other protocols to load
-            return
-    
-    def _load_protocols(self) -> None:
-        """Load protocols from the configuration file and built-in modules."""
-        if self._loaded:
-            return
-            
-        # First register built-in protocols
-        self._register_builtin_protocols()
-        
-        # Then load from configuration file if it exists
-        if os.path.exists(self._config_file):
-            try:
-                with open(self._config_file, 'r') as f:
-                    protocol_data = json.load(f)
-                    
-                for protocol in protocol_data.get('protocols', []):
-                    try:
-                        module_name = protocol['module']
-                        class_name = protocol['class']
-                        protocol_name = protocol['name']
-                        self._load_protocol_module(module_name, class_name, protocol_name)
-                    except (ImportError, AttributeError, KeyError) as e:
-                        # Log the error but continue loading other protocols
-                        logger.error(f"Error loading protocol {protocol.get('name', 'unknown')}: {str(e)}")
-            except Exception as e:
-                logger.error(f"Error loading protocol configuration: {str(e)}")
-        
-        self._loaded = True
-    
-    def get_protocol(self, name: str) -> Type[ProtocolBase]:
-        """Get a protocol implementation by name.
-        
-        Args:
-            name: Name of the protocol
-            
-        Returns:
-            Protocol class
-            
-        Raises:
-            ValueError: If protocol is not found or has missing dependencies
-        """
-        # Ensure protocols are loaded
-        self._load_protocols()
-        
-        name = name.lower()
-        if name not in self._protocols:
-            if name == "telnet":
-                raise ValueError("Protocol 'telnet' requires the telnetlib module which is not available. "
-                                "This module has been deprecated in Python 3.11 and removed in Python 3.13.")
-            raise ValueError(f"Protocol '{name}' not found")
-        return self._protocols[name]
-    
-    def get_all_protocols(self) -> Dict[str, Type[ProtocolBase]]:
-        """Get all registered protocols.
-        
-        Returns:
-            Dictionary mapping protocol names to protocol classes
-        """
-        # Ensure protocols are loaded
-        self._load_protocols()
-        
-        return self._protocols.copy()
-    
-    def register_protocol(self, name: str, protocol_class: Type[ProtocolBase]) -> None:
-        """Register a new protocol implementation.
-        
-        Args:
-            name: Name of the protocol
-            protocol_class: Protocol class implementation
-        """
-        name = name.lower()
-        self._protocols[name] = protocol_class
-        logger.debug(f"Registered protocol: {name}")
+# Dictionary of registered protocols: name -> class
+_protocols: Dict[str, Type[ProtocolBase]] = {}
 
 
-# Create a singleton instance of the registry
-protocol_registry = ProtocolRegistry()
+def register_protocol(name: str, protocol_class: Type[ProtocolBase]) -> None:
+    """Register a protocol with the given name.
+    
+    Args:
+        name: Protocol name (lowercase)
+        protocol_class: Protocol class
+    """
+    global _protocols
+    
+    # Ensure name is lowercase for consistent lookup
+    name = name.lower()
+    
+    # Check for duplicate
+    if name in _protocols:
+        logger.warning(f"Protocol {name} already registered, overwriting")
+        
+    # Register protocol
+    _protocols[name] = protocol_class
+    logger.debug(f"Registered protocol {name}")
+
+
+def get_protocol(name: str) -> Type[ProtocolBase]:
+    """Get a protocol by name.
+    
+    Args:
+        name: Protocol name (case insensitive)
+        
+    Returns:
+        Protocol class
+        
+    Raises:
+        ValueError: If protocol is not found
+    """
+    global _protocols
+    
+    # Ensure name is lowercase for consistent lookup
+    name = name.lower()
+    
+    # Check if protocol exists
+    if name not in _protocols:
+        raise ValueError(f"Protocol {name} not registered")
+        
+    # Return protocol class
+    return _protocols[name]
+
+
+def get_all_protocols() -> Dict[str, Type[ProtocolBase]]:
+    """Get all registered protocols.
+    
+    Returns:
+        Dictionary of protocol name -> protocol class
+    """
+    global _protocols
+    return _protocols.copy()
+
+
+def protocol_exists(name: str) -> bool:
+    """Check if a protocol exists.
+    
+    Args:
+        name: Protocol name (case insensitive)
+        
+    Returns:
+        True if protocol exists, False otherwise
+    """
+    global _protocols
+    
+    # Ensure name is lowercase for consistent lookup
+    name = name.lower()
+    
+    # Check if protocol exists
+    return name in _protocols
+
+
+def load_all_protocols() -> None:
+    """Load all protocol modules in the protocols directory."""
+    global _protocols
+    
+    # Get protocols directory
+    protocol_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    # Initialize counters for logging
+    total_protocols = 0
+    loaded_protocols = 0
+    
+    # Get all Python files in the protocols directory
+    for filename in os.listdir(protocol_dir):
+        # Skip non-Python files and __init__.py
+        if not filename.endswith('.py') or filename == '__init__.py' or filename == 'base.py':
+            continue
+            
+        module_name = filename[:-3]
+        total_protocols += 1
+        
+        try:
+            # Import module
+            module = importlib.import_module(f"src.protocols.{module_name}")
+            
+            # Find register_protocol function
+            if hasattr(module, 'register_protocol'):
+                # Call registration function
+                module.register_protocol()
+                loaded_protocols += 1
+            else:
+                # Alternative: auto-register if protocol class follows naming convention
+                for name, obj in inspect.getmembers(module):
+                    if (inspect.isclass(obj) and issubclass(obj, ProtocolBase) and obj != ProtocolBase):
+                        # Register class with its lowercase name
+                        register_protocol(name.lower(), obj)
+                        loaded_protocols += 1
+                        break
+                        
+        except (ImportError, AttributeError, Exception) as e:
+            # Log error but continue loading other protocols
+            logger.error(f"Failed to load protocol {module_name}: {str(e)}")
+    
+    logger.info(f"Loaded {loaded_protocols} out of {total_protocols} protocols")
+
+
+# Create aliases for common protocol names
+def create_protocol_aliases() -> None:
+    """Create aliases for common protocol names."""
+    global _protocols
+    
+    # Define aliases as a dictionary of alias -> original
+    aliases = {
+        "https": "http",     # HTTPS is just HTTP with SSL
+        "ftps": "ftp",       # FTPS is just FTP with SSL
+        "pop3s": "pop3",     # POP3S is just POP3 with SSL
+        "imaps": "imap",     # IMAPS is just IMAP with SSL
+        "smtps": "smtp",     # SMTPS is just SMTP with SSL
+    }
+    
+    # Create aliases
+    for alias, original in aliases.items():
+        if original in _protocols and alias not in _protocols:
+            _protocols[alias] = _protocols[original]
+            logger.debug(f"Created alias {alias} -> {original}")
+
+
+# Load all protocols on module import
+try:
+    load_all_protocols()
+    create_protocol_aliases()
+except Exception as e:
+    logger.error(f"Error during protocol initialization: {str(e)}")
+    # Continue even if there's an error to at least have a partially functional system

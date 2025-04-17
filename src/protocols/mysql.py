@@ -236,5 +236,10 @@ class MySQL(ProtocolBase):
 
 
 # Register protocol
-from src.protocols import protocol_registry
-protocol_registry.register_protocol("mysql", MySQL)
+
+
+
+def register_protocol():
+    """Register this protocol with the protocol registry."""
+    from src.protocols import register_protocol
+    register_protocol("mysql", MySQL)

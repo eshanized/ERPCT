@@ -323,8 +323,11 @@ def run_gui():
             from src.gui.main_window import main
             logger.info("Successfully imported main window module")
             return main()
-        except Exception as e:
-            logger.error(f"Error importing or running main application: {e}")
+        except ImportError as e:
+            logger.error(f"Error importing main application: {e}")
+            # Print detailed error for debugging
+            import traceback
+            logger.error(f"Detailed error: {traceback.format_exc()}")
             traceback.print_exc()
             
             # Fall back to simplified GUI

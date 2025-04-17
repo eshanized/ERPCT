@@ -13,7 +13,7 @@ import queue
 from typing import Dict, List, Optional, Tuple, Any, Callable, Set
 
 from src.protocols.base import ProtocolBase
-from src.protocols import protocol_registry
+from src.protocols import get_protocol, protocol_exists
 from src.utils.logging import get_logger
 
 
@@ -228,7 +228,7 @@ class Attack:
         if not protocol_name:
             raise ValueError("Protocol must be specified")
             
-        protocol_class = protocol_registry.get_protocol(protocol_name)
+        protocol_class = get_protocol(protocol_name)
         self.protocol = protocol_class(self.config)
         
         # Set up threading and queues

@@ -10,7 +10,8 @@ import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GLib, Gdk
 
-from src.protocols import protocol_registry
+# Updated imports
+from src.protocols import get_all_protocols, get_protocol, protocol_exists
 from src.utils.logging import get_logger
 
 
@@ -39,7 +40,7 @@ class ProtocolConfigurator(Gtk.Box):
         
         self.protocol_combo = Gtk.ComboBoxText()
         # Add all available protocols
-        protocols = protocol_registry.get_all_protocols()
+        protocols = get_all_protocols()
         for name in sorted(protocols.keys()):
             self.protocol_combo.append_text(name)
         
@@ -91,7 +92,7 @@ class ProtocolConfigurator(Gtk.Box):
             
         try:
             # Get protocol class and create an instance
-            protocol_class = protocol_registry.get_protocol(protocol_name)
+            protocol_class = get_protocol(protocol_name)
             
             # Create a default config with host to prevent initialization errors
             default_config = {}
@@ -113,6 +114,12 @@ class ProtocolConfigurator(Gtk.Box):
             elif protocol_name.lower() == "rdp":
                 default_config["host"] = "example.com"
                 default_config["domain"] = ""
+            
+            # Custom protocol special handling
+            elif protocol_name.lower() == "custom":
+                default_config["host"] = "example.com"
+                default_config["method_type"] = "command"  # Use command method by default, which doesn't require script path
+                default_config["command"] = "echo 'Test authentication'"
             
             try:
                 protocol = protocol_class(default_config)

@@ -14,7 +14,7 @@ from gi.repository import Gtk, GLib, Gdk, Pango
 
 from src.utils.logging import get_logger
 from src.utils.config import get_config_dir
-from src.protocols import protocol_registry
+from src.protocols import get_all_protocols, get_protocol, protocol_exists
 
 
 class ProtocolConfigGenerator(Gtk.Box):

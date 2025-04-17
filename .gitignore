@@ -56,3 +56,5 @@ results/
 found_passwords.txt
 targets.txt
 *_test.py
+test_*.py
+fix_*.py

@@ -660,6 +660,14 @@ class Dashboard(Gtk.Box):
         # Get recent attacks from data manager
         if self.data_manager is None:
             self.logger.warning("Data manager is not available")
+            # Add a placeholder row to show no data is available
+            self.attack_store.append([
+                datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "No Data Available",
+                "N/A",
+                "No active attacks",
+                0.0  # Use float instead of string for success rate
+            ])
             return
             
         recent_attacks = self.data_manager.get_recent_attacks(limit=10)
@@ -667,10 +675,30 @@ class Dashboard(Gtk.Box):
         # Get active attacks
         if self.attack_controller is None:
             self.logger.warning("Attack controller is not available")
+            # Add a placeholder row to show no data is available
+            self.attack_store.append([
+                datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "No Data Available",
+                "N/A",
+                "No active attacks",
+                0.0  # Use float instead of string for success rate
+            ])
             return
             
         active_attacks = self.attack_controller.get_active_attacks()
         
+        # Check if we have any active or recent attacks
+        if not active_attacks and not recent_attacks:
+            # Add a placeholder row to show no data is available
+            self.attack_store.append([
+                datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "No Data Available",
+                "N/A",
+                "No attack history",
+                0.0  # Use float instead of string for success rate
+            ])
+            return
+            
         # Add active attacks to the list
         for attack_id, attack in active_attacks.items():
             status = attack.get_status()
@@ -688,17 +716,18 @@ class Dashboard(Gtk.Box):
                 target,
                 protocol,
                 "Running" if status.get('running', False) else "Complete",
-                f"{success_rate:.1f}%"
+                success_rate  # Already a float, don't format as string
             ])
         
         # Add completed attacks
         for attack in recent_attacks:
+            success_rate = float(attack.get('success_rate', 0))  # Ensure it's a float
             self.attack_store.append([
                 attack.get('timestamp', 'Unknown'),
                 attack.get('target', 'Unknown'),
                 attack.get('protocol', 'Unknown'),
                 attack.get('status', 'Unknown'),
-                f"{attack.get('success_rate', 0):.1f}%"
+                success_rate  # Use float instead of formatted string
             ])
     
     def _update_credentials_store(self):
@@ -713,6 +742,14 @@ class Dashboard(Gtk.Box):
         # Get recent credentials from data manager
         if self.data_manager is None:
             self.logger.warning("Data manager is not available")
+            # Add a placeholder row to show no data is available
+            self.creds_store.append([
+                "No Data Available",
+                "Run an attack to find credentials",
+                datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "N/A",
+                "N/A"
+            ])
             return
             
         recent_credentials = self.data_manager.get_recent_credentials(limit=50)
@@ -720,6 +757,14 @@ class Dashboard(Gtk.Box):
         # Get active attacks and their credentials
         if self.attack_controller is None:
             self.logger.warning("Attack controller is not available")
+            # Add a placeholder row to show no data is available
+            self.creds_store.append([
+                "No Data Available",
+                "Run an attack to find credentials",
+                datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "N/A",
+                "N/A"
+            ])
             return
             
         active_attacks = self.attack_controller.get_active_attacks()
@@ -734,6 +779,18 @@ class Dashboard(Gtk.Box):
                     'protocol': attack.config.get('protocol', 'Unknown'),
                     'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 })
+        
+        # Check if we have any active or recent credentials
+        if not active_credentials and not recent_credentials:
+            # Add a placeholder row to show no data is available
+            self.creds_store.append([
+                "No Credentials Found",
+                "Run an attack to find credentials",
+                datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "N/A",
+                "N/A"
+            ])
+            return
         
         # Add active credentials first
         for cred in active_credentials:
@@ -758,25 +815,42 @@ class Dashboard(Gtk.Box):
     def _update_summary_metrics(self):
         """Update summary metrics from results source."""
         if not self.results_source:
+            # Show default values with clear messages
+            self.total_attacks_label.set_text("0 (No Data)")
+            self.successful_attacks_label.set_text("0 (No Data)")
+            self.total_creds_label.set_text("0 (No Data)")
+            self.total_targets_label.set_text("0 (No Data)")
+            self.active_scans_label.set_text("0 (No Active Scans)")
+            self.success_rate_label.set_text("0.0% (No Data)")
             return
             
         try:
             # Get summary metrics
             metrics = self.results_source.get_summary_metrics()
             
-            # Update UI with real metrics
-            self.total_attacks_label.set_text(str(metrics.get('total_attacks', 0)))
-            self.successful_attacks_label.set_text(str(metrics.get('successful_attacks', 0)))
-            self.total_creds_label.set_text(str(metrics.get('total_credentials', 0)))
-            self.total_targets_label.set_text(str(metrics.get('total_targets', 0)))
-            self.active_scans_label.set_text(str(metrics.get('active_scans', 0)))
-            
-            # Calculate success rate
+            # Update UI with real metrics or default values with clear messages
             if metrics.get('total_attacks', 0) > 0:
+                self.total_attacks_label.set_text(str(metrics.get('total_attacks', 0)))
+                self.successful_attacks_label.set_text(str(metrics.get('successful_attacks', 0)))
+                self.total_creds_label.set_text(str(metrics.get('total_credentials', 0)))
+                self.total_targets_label.set_text(str(metrics.get('total_targets', 0)))
+                
+                # Calculate success rate
                 success_rate = (metrics.get('successful_attacks', 0) / metrics.get('total_attacks', 0)) * 100
                 self.success_rate_label.set_text(f"{success_rate:.1f}%")
             else:
-                self.success_rate_label.set_text("0.0%")
+                self.total_attacks_label.set_text("0 (No Attacks Run)")
+                self.successful_attacks_label.set_text("0 (No Data)")
+                self.total_creds_label.set_text("0 (No Credentials Found)")
+                self.total_targets_label.set_text("0 (No Targets)")
+                self.success_rate_label.set_text("0.0% (No Data)")
+            
+            # Active scans are updated separately
+            active_scans = metrics.get('active_scans', 0)
+            if active_scans > 0:
+                self.active_scans_label.set_text(str(active_scans))
+            else:
+                self.active_scans_label.set_text("0 (No Active Scans)")
             
             # Update success rate data for chart
             success_rates = metrics.get('success_rate_history', [])
@@ -784,6 +858,13 @@ class Dashboard(Gtk.Box):
                 self.success_rate_data = success_rates
         except Exception as e:
             self.logger.error(f"Error updating summary metrics: {str(e)}")
+            # Show error message in labels
+            self.total_attacks_label.set_text("Error")
+            self.successful_attacks_label.set_text("Error")
+            self.total_creds_label.set_text("Error")
+            self.total_targets_label.set_text("Error")
+            self.active_scans_label.set_text("Error")
+            self.success_rate_label.set_text("Error")
     
     def _update_metrics(self):
         """Update all dashboard metrics with real data."""

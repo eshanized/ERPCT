@@ -222,16 +222,17 @@ class MainApplication(Gtk.Window):
     
     def _on_advanced_attack_clicked(self, button):
         """Launch advanced attack configuration."""
-        dialog = Gtk.MessageDialog(
-            transient_for=self,
-            flags=0,
-            message_type=Gtk.MessageType.INFO,
-            buttons=Gtk.ButtonsType.OK,
-            text="Advanced Attack Feature"
-        )
-        dialog.format_secondary_text("This feature is not yet implemented.")
-        dialog.run()
-        dialog.destroy()
+        from src.gui.main_window import ERPCTMainWindow
+        from gi.repository import Gtk
+        
+        # Create the main window which includes our updated AttackPanel
+        window = ERPCTMainWindow(None)
+        window.connect("delete-event", lambda w, e: w.destroy())
+        window.show_all()
+        
+        # Switch to the Attack tab (index 2)
+        if hasattr(window, 'notebook'):
+            window.notebook.set_current_page(2)  # Attack tab
     
     def _on_wordlist_clicked(self, button):
         """Open wordlist manager."""

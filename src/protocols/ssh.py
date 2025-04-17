@@ -262,6 +262,6 @@ class SSH(ProtocolBase):
 # Register this protocol with the registry
 # This will be imported by the protocol registry
 def register_protocol():
-    """Register this protocol in the registry."""
-    from src.protocols import protocol_registry
-    protocol_registry.register_protocol("ssh", SSH)
+    """Register this protocol with the protocol registry."""
+    from src.protocols import register_protocol
+    register_protocol("ssh", SSH)
