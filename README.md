@@ -1,73 +1,29 @@
 # ERPCT - Enhanced Rapid Password Cracking Tool
 
-![ERPCT Logo](resources/images/erpct_logo.png)
+ERPCT is an advanced password cracking tool with a GTK-based graphical user interface, designed as a more powerful and feature-rich alternative to traditional password cracking tools. It supports multiple authentication protocols and implements sophisticated attack strategies for security testing purposes.
 
-ERPCT is an advanced password cracking tool with a GTK-based graphical user interface, designed to be a more powerful, customizable, and feature-rich alternative to THC-Hydra. It supports multiple protocols and implements sophisticated attack strategies for security testing purposes.
-
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![GTK 3/4](https://img.shields.io/badge/GTK-3/4-green.svg)](https://www.gtk.org/)
-
-## 🔥 Features
+## Features
 
 - **Multi-Protocol Support**
-  - SSH, FTP, HTTP(S), SMTP, Telnet, RDP, SMB, and more
+  - Supports a wide range of protocols: SSH, FTP, HTTP/HTTPS, SMTP, Telnet, RDP, SMB, POP3, IMAP, LDAP, MySQL, PostgreSQL, VNC
   - Extensible architecture for custom protocol implementations
 
-- **Advanced Cracking Techniques**
-  - Dictionary attacks with comprehensive wordlists
-  - Rule-based password mutations
-  - Hybrid attacks combining multiple strategies
-  - Smart attack scheduling based on protocol characteristics
+- **Intuitive GTK-based GUI**
+  - Configuration Manager for editing system settings
+  - Protocol Editor for managing authentication protocols
+  - Dashboard with quick access to all features
 
-- **Powerful GTK-based User Interface**
-  - Intuitive target and attack configuration
-  - Real-time attack status and progress monitoring
-  - Interactive results explorer
-  - Wordlist and rule management
+- **Advanced Cracking Capabilities**
+  - Dictionary attacks with customizable wordlists
+  - Multi-threaded architecture for concurrent attempts
+  - Configurable timing and evasion techniques
 
-- **Performance Optimizations**
-  - Multi-threaded architecture for concurrent cracking
-  - Asynchronous operations for network-bound protocols
-  - Efficient memory management for handling large wordlists
-  - Optional distributed cracking across multiple machines
+## Installation
 
-- **Advanced Evasion Capabilities**
-  - Customizable timing patterns to avoid detection
-  - IP rotation and proxy support
-  - Protocol-specific evasion techniques
-  - Failed attempt limiting and smart retry logic
-
-- **Comprehensive Logging and Analysis**
-  - Detailed attack logs for post-engagement analysis
-  - Success/failure statistics
-  - Performance metrics and optimization suggestions
-
-## 📋 Requirements
+### Prerequisites
 
 - Python 3.8 or higher
-- GTK 3/4 with PyGObject
-- Additional protocol-specific dependencies as per requirements.txt
-
-## 🔧 Installation
-
-### From Source
-
-```bash
-# Clone the repository
-git clone https://github.com/eshanized/ERPCT.git
-cd ERPCT
-
-# Create and activate a virtual environment (recommended)
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Install ERPCT in development mode
-pip install -e .
-```
+- GTK 3 with PyGObject
 
 ### System Dependencies
 
@@ -88,18 +44,39 @@ brew install pygobject3 gtk+3 python cairo
 ```
 
 #### Windows
-Windows users should consider using [MSYS2](https://www.msys2.org/) to install GTK and its dependencies:
+Windows users should use [MSYS2](https://www.msys2.org/) to install GTK:
 ```bash
 # After installing MSYS2, run in the MSYS2 terminal:
 pacman -S mingw-w64-x86_64-gtk3 mingw-w64-x86_64-python mingw-w64-x86_64-python-gobject
 ```
 
-## 🚀 Usage
-
-### Graphical Interface
+### Installation Steps
 
 ```bash
-# Launch ERPCT GUI
+# Clone the repository
+git clone https://github.com/user/ERPCT.git
+cd ERPCT
+
+# Create and activate a virtual environment (recommended)
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Install ERPCT in development mode
+pip install -e .
+```
+
+## Usage
+
+### Starting the GUI
+
+```bash
+# Using the run_gui.py script
+python run_gui.py
+
+# Or if installed via pip
 erpct-gui
 ```
 
@@ -107,50 +84,55 @@ erpct-gui
 
 ```bash
 # Basic usage
-erpct --target 192.168.1.100 --protocol ssh --username admin --wordlist resources/wordlists/common.txt
+python src/main.py --target 192.168.1.100 --protocol ssh --username admin --wordlist wordlist.txt
 
-# Advanced options
-erpct --target targets.txt --protocol http-form --port 8080 --form-data "username=^USER^&password=^PASS^" --success-match "Welcome" --username-list users.txt --wordlist passlist.txt --threads 10 --delay 2
+# With more options
+python src/main.py --target 192.168.1.100 --protocol http-form --port 8080 --username admin --wordlist wordlist.txt --threads 10 --delay 0.5 --output results.txt
 ```
 
-## Using the GUI
+### Command Line Options
 
-1. **Target Configuration (Target Tab)**
-   - Input target host or load a target list from a file
-   - Configure username(s) and password(s) or wordlists
+- `--target`: Target hostname or IP address
+- `--port`: Target port
+- `--protocol`: Protocol to use (ssh, ftp, http-form, etc.)
+- `--list-protocols`: List available protocols
+- `--username`: Username to try
+- `--password`: Password to try (for single attempts)
+- `--userlist`: File containing usernames (one per line)
+- `--wordlist`: Password wordlist to use
+- `--threads`: Number of concurrent threads (default: 1)
+- `--delay`: Delay between connection attempts in seconds (default: 0)
+- `--timeout`: Connection timeout in seconds (default: 10)
+- `--username-first`: Try all passwords for each username (default)
+- `--password-first`: Try all usernames for each password
+- `--output`: Output file for results
+- `--json`: Output results in JSON format
+- `--verbose`: Verbose output
+- `--debug`: Debug output
 
-2. **Attack Configuration (Attack Tab)**
-   - Select the protocol to use
-   - Configure attack-specific parameters
-   - Set performance options like threads and delay
+## GUI Components
 
-3. **Wordlist Management (Wordlists Tab)**
-   - Import, view, and manage wordlists
-   - Generate custom wordlists (feature in development)
+### Main Dashboard
+The main application window provides access to all features through a dashboard interface, including:
+- Configuration tools
+- Attack tools
+- Utilities
 
-4. **Execution and Monitoring (Execution Tab)**
-   - Start the attack and monitor progress
-   - View real-time statistics and estimated completion time
+### Configuration Manager
+The Configuration Manager allows editing various configuration files:
+- Default Settings
+- UI Settings
+- Protocols
+- Distributed attack settings
+- Evasion technique settings
 
-5. **Results (Results Tab)**
-   - View and analyze successful credentials
-   - Export results in various formats
+### Protocol Editor
+The Protocol Editor provides a specialized interface for managing protocol configurations:
+- Add, edit, or remove protocol definitions
+- Configure protocol-specific parameters
+- Organize protocols by category
 
-## 📖 Documentation
-
-For more detailed documentation, see the [docs](docs/) directory.
-
-## 🔐 Security Considerations
-
-- **Legal Usage**: Only use ERPCT against systems you own or have explicit permission to test
-- **Network Impacts**: Password attacks can generate significant traffic and potentially trigger security alerts
-- **Service Disruption**: Aggressive attacks may cause denial of service; use rate limiting features
-- **Sensitive Data**: Handle discovered credentials securely and responsibly
-
-## 🛠️ Development
-
-### Project Structure
-
+## Project Structure
 ```
 ERPCT/
 ├── src/
@@ -158,43 +140,25 @@ ERPCT/
 │   ├── gui/            # GTK interface components
 │   ├── protocols/      # Protocol-specific modules
 │   ├── utils/          # Utility functions
-│   ├── wordlists/      # Wordlist generation and handling
 │   ├── evasion/        # Evasion techniques
-│   └── main.py         # Application entry point
-├── resources/
-│   ├── wordlists/      # Default wordlists
-│   ├── rules/          # Password mangling rules
-│   └── images/         # UI assets
-├── docs/               # Documentation
-├── tests/              # Unit and integration tests
-└── config/             # Configuration files
+│   └── main.py         # CLI entry point
+├── config/             # Configuration files
+├── data/               # Data files
+├── resources/          # UI resources
+├── run_gui.py          # GUI entry point
+└── requirements.txt    # Dependencies
 ```
 
-### Contributing
+## Security Considerations
 
-We welcome contributions to ERPCT! Please see [CONTRIBUTING.md](docs/CONTRIBUTING.md) for details on how to submit pull requests, report issues, or request features.
+- **Legal Usage**: Only use ERPCT against systems you own or have explicit permission to test
+- **Network Impacts**: Password attacks can generate significant traffic and potentially trigger security alerts
+- **Service Disruption**: Aggressive attacks may cause denial of service; use rate limiting features
 
-### Testing
+## License
 
-```bash
-# Run all tests
-pytest
+ERPCT is released under the MIT License. See the LICENSE file for details.
 
-# Run specific test categories
-pytest tests/test_protocols.py
-```
-
-## 📜 License
-
-ERPCT is released under the MIT License. See [LICENSE](LICENSE) file for details.
-
-## ⚠️ Disclaimer
+## Disclaimer
 
 This tool is developed for educational purposes and legitimate security testing only. Unauthorized access to computer systems and networks is illegal and unethical. The developers assume no liability and are not responsible for any misuse or damage caused by this program.
-
-## 📬 Contact
-
-For questions, suggestions, or collaboration opportunities, please open an issue on the GitHub repository or contact the maintainers at:
-
-- Email: your.email@example.com
-- Project Issues: [GitHub Issues](https://github.com/eshanized/ERPCT/issues)

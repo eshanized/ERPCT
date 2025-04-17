@@ -26,6 +26,7 @@ from src.gui.report_generator import ReportGenerator
 from src.gui.task_scheduler import TaskScheduler
 from src.gui.network_scanner import NetworkScanner
 from src.gui.dashboard import Dashboard
+from src.gui.settings import SettingsPanel
 
 
 class ERPCTMainWindow(Gtk.ApplicationWindow):
@@ -132,23 +133,8 @@ class ERPCTMainWindow(Gtk.ApplicationWindow):
         notebook.append_page(self.report_generator, Gtk.Label(label="Reports"))
         
         # Settings tab
-        settings_page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-        settings_page.set_border_width(10)
-        
-        # Add tabs to settings page
-        settings_notebook = Gtk.Notebook()
-        settings_page.pack_start(settings_notebook, True, True, 0)
-        
-        # Log viewer tab
-        self.log_viewer = LogViewer()
-        settings_notebook.append_page(self.log_viewer, Gtk.Label(label="Logs"))
-        
-        # Preferences tab
-        from src.gui.preferences import PreferencesPanel
-        self.preferences_panel = PreferencesPanel()
-        settings_notebook.append_page(self.preferences_panel, Gtk.Label(label="Preferences"))
-        
-        notebook.append_page(settings_page, Gtk.Label(label="Settings"))
+        self.settings_panel = SettingsPanel()
+        notebook.append_page(self.settings_panel, Gtk.Label(label="Settings"))
 
         # Store the notebook for later access
         self.notebook = notebook
@@ -173,7 +159,11 @@ class ERPCTMainWindow(Gtk.ApplicationWindow):
             self.protocol_configurator.set_on_protocol_change_callback(self._on_protocol_change)
         
         # Connect other components as needed
-        self.log_viewer.start_log_monitoring()
+        # Check if log viewer is directly available or via settings panel
+        if hasattr(self, 'log_viewer'):
+            self.log_viewer.start_log_monitoring()
+        elif hasattr(self, 'settings_panel') and hasattr(self.settings_panel, 'log_viewer'):
+            self.settings_panel.log_viewer.start_log_monitoring()
     
     def start_attack(self, attack_config):
         """Start a new attack with the given configuration.
