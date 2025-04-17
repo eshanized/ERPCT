@@ -578,3 +578,11 @@ class Preferences(Gtk.Box):
         """
         self._update_config_from_ui()
         return self.config
+
+
+class PreferencesPanel(Preferences):
+    """Alias class for Preferences panel to maintain backwards compatibility."""
+    
+    def __init__(self):
+        """Initialize the preferences panel."""
+        super().__init__()

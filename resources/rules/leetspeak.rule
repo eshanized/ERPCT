@@ -1,0 +1,97 @@
+# ERPCT Leetspeak Mutation Rules
+# Complete ruleset for leetspeak transformations
+
+# Basic single character substitutions
+sa@         # a -> @
+sa4         # a -> 4
+sb8         # b -> 8
+sb6         # b -> 6
+sc(         # c -> (
+se3         # e -> 3
+sg6         # g -> 6
+sg9         # g -> 9
+sh#         # h -> #
+si1         # i -> 1
+si!         # i -> !
+si|         # i -> |
+sl1         # l -> 1
+sl|         # l -> |
+sl!         # l -> !
+so0         # o -> 0
+sq9         # q -> 9
+ss5         # s -> 5
+ss$         # s -> $
+st7         # t -> 7
+st+         # t -> +
+tx%         # x -> %
+yz2         # z -> 2
+
+# Multiple character substitutions (two replacements)
+sa@se3
+sa@si1
+sa@so0
+se3si1
+se3so0
+si1so0
+ss$sa@
+sa4se3
+sa4so0
+sb8sa@
+sc(sa@
+sh#sa@
+st+sa@
+st+se3
+st+si1
+so0sa@
+so0se3
+so0si1
+ss$se3
+sg9se3
+sl1si1
+
+# Multiple character substitutions (three replacements)
+sa@se3si1
+sa@se3so0
+sa@si1so0
+se3si1so0
+sa@se3ss$
+sa@si1ss$
+sa@so0ss$
+se3si1ss$
+se3so0ss$
+si1so0ss$
+
+# Multiple character substitutions (four replacements)
+sa@se3si1so0
+sa@se3si1ss$
+sa@se3so0ss$
+sa@si1so0ss$
+se3si1so0ss$
+
+# Complete leetspeak transformation (five replacements)
+sa@se3si1so0ss$
+
+# Case manipulations with leetspeak
+c sa@        # Capitalize then a->@
+c se3        # Capitalize then e->3
+c sa@se3     # Capitalize with multiple leet transformations
+u sa@        # Uppercase then a->@
+u se3        # Uppercase then e->3
+u sa@se3     # Uppercase with multiple leet transformations
+
+# Prefix and suffix with leetspeak
+sa@ $1       # a->@ and add 1 at end
+sa@ $!       # a->@ and add ! at end
+sa@se3 $1    # Multiple leet and add 1 at end
+sa@se3 $!    # Multiple leet and add ! at end
+^1 sa@       # Add 1 at start and a->@
+^! sa@       # Add ! at start and a->@
+^1 sa@se3    # Add 1 at start and multiple leet
+^! sa@se3    # Add ! at start and multiple leet
+
+# Combined advanced transformations
+sa@se3si1 $123
+sa@se3si1 $2023
+sa@se3si1 $!
+c sa@se3 $!
+c sa@se3si1 $2023

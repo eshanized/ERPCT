@@ -1,0 +1,43 @@
+# ERPCT Default Password Mutation Rules
+# These rules apply common transformations to passwords
+
+# Basic transformations
+:           # Do nothing (original password)
+l           # Convert to lowercase
+u           # Convert to uppercase
+c           # Capitalize
+r           # Reverse
+d           # Duplicate
+
+# Basic character substitutions
+sa@         # a -> @
+se3         # e -> 3
+si1         # i -> 1
+si!         # i -> !
+sl1         # l -> 1
+so0         # o -> 0
+ss$         # s -> $
+st+         # t -> +
+
+# Common prefixes and suffixes
+$1
+$123
+$!
+^1
+^!
+^*
+
+# Year suffixes
+$2022
+$2023
+$2024
+
+# Combined transformations
+c$1
+c$!
+sa@so0
+sa@se3si1
+c$123
+u$!
+l$2023
+l$!

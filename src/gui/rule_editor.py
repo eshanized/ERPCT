@@ -8,11 +8,15 @@ This module provides the GUI panel for editing password mutation rules.
 
 import os
 import re
+import time
 import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GLib, Pango, Gdk
 
 from src.utils.logging import get_logger
+from src.rules.parser import RuleParser
+from src.rules.transformer import apply_rule, apply_rules
+from src.rules.generator import RuleGenerator
 
 
 class RuleEditor(Gtk.Box):
@@ -25,8 +29,12 @@ class RuleEditor(Gtk.Box):
         
         self.logger = get_logger(__name__)
         
-        # Default rules directory
-        self.rules_dir = os.path.join(os.path.expanduser("~"), ".erpct", "rules")
+        # Initialize rule modules
+        self.rule_parser = RuleParser()
+        self.rule_generator = RuleGenerator()
+        
+        # Default rules directory - use the one from rule parser
+        self.rules_dir = self.rule_parser.rules_directories[0] if self.rule_parser.rules_directories else os.path.join(os.path.expanduser("~"), ".erpct", "rules")
         os.makedirs(self.rules_dir, exist_ok=True)
         
         # Currently loaded rule file
@@ -46,10 +54,13 @@ class RuleEditor(Gtk.Box):
         self.sample_rules = """# Basic password mutation rules
 # Use these as examples or customize them for your needs
 
-# Append digits
-$1
-$2
-$123
+# Basic transformations
+:
+l
+u
+c
+r
+d
 
 # Common character substitutions 
 sa@
@@ -199,8 +210,8 @@ $[x]  - Append character x ($1: password → password1)
         
         scrolled = Gtk.ScrolledWindow()
         scrolled.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
-        scrolled.set_min_content_height(100)
         scrolled.add(self.results_view)
+        scrolled.set_size_request(-1, 150)
         
         results_box.pack_start(scrolled, True, True, 0)
         box.pack_start(results_box, True, True, 0)
@@ -215,146 +226,92 @@ $[x]  - Append character x ($1: password → password1)
         self.new_button.connect("clicked", self._on_new_clicked)
         button_box.pack_start(self.new_button, False, False, 0)
         
-        # Add spacer
-        button_box.pack_start(Gtk.Label(), True, True, 0)
-        
-        # Save button
+        # Save button (initially disabled)
         self.save_button = Gtk.Button.new_with_label("Save")
         self.save_button.connect("clicked", self._on_save_clicked)
         self.save_button.set_sensitive(False)
         button_box.pack_start(self.save_button, False, False, 0)
         
-        # Delete button
+        # Delete button (initially disabled)
         self.delete_button = Gtk.Button.new_with_label("Delete")
         self.delete_button.connect("clicked", self._on_delete_clicked)
         self.delete_button.set_sensitive(False)
         button_box.pack_start(self.delete_button, False, False, 0)
+        
+        # Generate button
+        self.generate_button = Gtk.Button.new_with_label("Generate Rules")
+        self.generate_button.connect("clicked", self._on_generate_clicked)
+        button_box.pack_start(self.generate_button, False, False, 0)
+        
+        # Spacer
+        button_box.pack_start(Gtk.Label(), True, True, 0)
     
     def _setup_syntax_highlighting(self):
-        """Set up syntax highlighting for rule editor."""
-        # Create tags for syntax highlighting
-        self.rule_buffer.create_tag("comment", foreground="#009900")  # Green for comments
-        self.rule_buffer.create_tag("command", foreground="#0000FF")  # Blue for commands
-        self.rule_buffer.create_tag("parameter", foreground="#FF00FF")  # Purple for parameters
-    
+        """Set up syntax highlighting for rule commands."""
+        # Nothing to do for basic implementation
+        pass
+        
     def _apply_syntax_highlighting(self):
-        """Apply syntax highlighting to the rule buffer."""
-        if not self.rule_buffer:
-            return
-            
-        # Get all text
-        start = self.rule_buffer.get_start_iter()
-        end = self.rule_buffer.get_end_iter()
-        text = self.rule_buffer.get_text(start, end, False)
-        
-        # Remove all tags
-        self.rule_buffer.remove_all_tags(start, end)
-        
-        # Apply syntax highlighting
-        lines = text.split('\n')
-        for i, line in enumerate(lines):
-            line_start = self.rule_buffer.get_iter_at_line(i)
-            
-            # Comment line
-            if line.strip().startswith('#'):
-                line_end = self.rule_buffer.get_iter_at_line_offset(i, len(line))
-                self.rule_buffer.apply_tag_by_name("comment", line_start, line_end)
-                continue
-            
-            # Empty line
-            if not line.strip():
-                continue
-            
-            # Commands and parameters
-            j = 0
-            while j < len(line):
-                char = line[j]
-                
-                # Skip whitespace
-                if char.isspace():
-                    j += 1
-                    continue
-                
-                # Command characters
-                if char in ":lucrtdsz@^$<>(){}[]'":
-                    command_start = self.rule_buffer.get_iter_at_line_offset(i, j)
-                    command_end = self.rule_buffer.get_iter_at_line_offset(i, j + 1)
-                    self.rule_buffer.apply_tag_by_name("command", command_start, command_end)
-                    
-                    # Check for parameters
-                    if char in "s@^$<>()[]'" and j + 1 < len(line):
-                        param_start = self.rule_buffer.get_iter_at_line_offset(i, j + 1)
-                        
-                        # Find parameter end
-                        k = j + 1
-                        while k < len(line) and not line[k].isspace() and line[k] not in ":lucrtdsz@^$<>(){}[]'":
-                            k += 1
-                        
-                        if k > j + 1:
-                            param_end = self.rule_buffer.get_iter_at_line_offset(i, k)
-                            self.rule_buffer.apply_tag_by_name("parameter", param_start, param_end)
-                            j = k
-                            continue
-                
-                j += 1
+        """Apply syntax highlighting to current rule buffer content."""
+        # Simple highlighting implementation could be added here
+        pass
     
     def _on_selection_changed(self, selection):
         """Handle rule file selection change.
         
         Args:
-            selection: TreeSelection that changed
+            selection: The TreeSelection that changed
         """
-        # Check if there are unsaved changes
-        if self.modified:
-            dialog = Gtk.MessageDialog(
-                transient_for=self.get_toplevel(),
-                flags=0,
-                message_type=Gtk.MessageType.WARNING,
-                buttons=Gtk.ButtonsType.YES_NO,
-                text="Unsaved Changes"
-            )
-            dialog.format_secondary_text(
-                "You have unsaved changes. Do you want to save them before loading another file?"
-            )
-            response = dialog.run()
-            dialog.destroy()
-            
-            if response == Gtk.ResponseType.YES:
-                self._save_current_file()
-        
         model, treeiter = selection.get_selected()
         if treeiter is not None:
+            # Get the selected rule file path
             rule_path = model[treeiter][1]
+            
+            # Check if current file has unsaved changes
+            if self.modified:
+                dialog = Gtk.MessageDialog(
+                    transient_for=self.get_toplevel(),
+                    flags=0,
+                    message_type=Gtk.MessageType.QUESTION,
+                    buttons=Gtk.ButtonsType.YES_NO,
+                    text="Unsaved Changes"
+                )
+                dialog.format_secondary_text(
+                    "You have unsaved changes. Do you want to save them before loading the new file?"
+                )
+                response = dialog.run()
+                dialog.destroy()
+                
+                if response == Gtk.ResponseType.YES:
+                    self._save_current_file()
+            
+            # Load the selected rule file
             self.load_rule_file(rule_path)
             self.delete_button.set_sensitive(True)
-        else:
-            self.delete_button.set_sensitive(False)
     
     def _on_rule_buffer_changed(self, buffer):
-        """Handle rule buffer content change.
+        """Handle rule text buffer changes.
         
         Args:
-            buffer: TextBuffer that changed
+            buffer: The text buffer that changed
         """
-        self.modified = True
-        self.save_button.set_sensitive(True)
-        
-        # Apply syntax highlighting
-        self._apply_syntax_highlighting()
+        if not self.modified:
+            self.modified = True
+            self.save_button.set_sensitive(True)
+            
+        # Could apply syntax highlighting here
     
     def _on_rule_editor_key_press(self, widget, event):
-        """Handle key press in rule editor.
+        """Handle key press in the rule editor.
         
         Args:
-            widget: Widget that received the event
-            event: Key event
+            widget: The widget where the key was pressed
+            event: The key event
+            
+        Returns:
+            True if the event was handled, False otherwise
         """
-        # Tab key adds 4 spaces instead of changing focus
-        if event.keyval == Gdk.KEY_Tab:
-            self.rule_buffer.insert_at_cursor("    ")
-            return True
-        
-        return False
+        return False  # Let default handler process the event
     
     def _on_new_clicked(self, button):
         """Handle new button click.
@@ -362,12 +319,12 @@ $[x]  - Append character x ($1: password → password1)
         Args:
             button: Button that was clicked
         """
-        # Check if there are unsaved changes
+        # Check if current file has unsaved changes
         if self.modified:
             dialog = Gtk.MessageDialog(
                 transient_for=self.get_toplevel(),
                 flags=0,
-                message_type=Gtk.MessageType.WARNING,
+                message_type=Gtk.MessageType.QUESTION,
                 buttons=Gtk.ButtonsType.YES_NO,
                 text="Unsaved Changes"
             )
@@ -380,69 +337,127 @@ $[x]  - Append character x ($1: password → password1)
             if response == Gtk.ResponseType.YES:
                 self._save_current_file()
         
-        # Create dialog for new file name
+        # Create new file dialog
         dialog = Gtk.Dialog(
-            title="New Rule File",
-            parent=self.get_toplevel(),
+            title="Create New Rule File",
+            transient_for=self.get_toplevel(),
             flags=0,
-            buttons=(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_OK, Gtk.ResponseType.OK)
+            buttons=(
+                Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+                Gtk.STOCK_OK, Gtk.ResponseType.OK
+            )
         )
-        dialog.set_default_response(Gtk.ResponseType.OK)
+        dialog.set_default_size(400, 100)
         
+        # File name entry
         box = dialog.get_content_area()
-        box.set_border_width(10)
+        box.set_spacing(6)
         
-        label = Gtk.Label(label="Enter name for new rule file:")
-        box.pack_start(label, False, False, 0)
+        name_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        name_label = Gtk.Label(label="File Name:")
+        name_box.pack_start(name_label, False, False, 0)
         
-        entry = Gtk.Entry()
-        entry.set_activates_default(True)
-        box.pack_start(entry, False, False, 0)
+        name_entry = Gtk.Entry()
+        name_entry.set_text("custom.rule")
+        name_box.pack_start(name_entry, True, True, 0)
         
-        box.show_all()
+        box.pack_start(name_box, False, False, 0)
         
+        # Template options
+        template_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        template_label = Gtk.Label(label="Template:")
+        template_box.pack_start(template_label, False, False, 0)
+        
+        template_combo = Gtk.ComboBoxText()
+        template_combo.append_text("Empty File")
+        template_combo.append_text("Basic Examples")
+        template_combo.append_text("Generate Basic Rules")
+        template_combo.append_text("Generate Advanced Rules")
+        template_combo.set_active(1)  # Default to Basic Examples
+        template_box.pack_start(template_combo, True, True, 0)
+        
+        box.pack_start(template_box, False, False, 0)
+        
+        dialog.show_all()
         response = dialog.run()
-        file_name = entry.get_text()
-        dialog.destroy()
         
-        if response == Gtk.ResponseType.OK and file_name:
-            # Ensure file name has .rule extension
-            if not file_name.endswith('.rule'):
-                file_name += '.rule'
+        if response == Gtk.ResponseType.OK:
+            filename = name_entry.get_text().strip()
+            template_option = template_combo.get_active()
             
-            # Create new file
-            file_path = os.path.join(self.rules_dir, file_name)
-            
-            # Check if file already exists
-            if os.path.exists(file_path):
-                error_dialog = Gtk.MessageDialog(
-                    transient_for=self.get_toplevel(),
-                    flags=0,
-                    message_type=Gtk.MessageType.ERROR,
-                    buttons=Gtk.ButtonsType.OK,
-                    text="File Already Exists"
-                )
-                error_dialog.format_secondary_text(f"A rule file named '{file_name}' already exists.")
-                error_dialog.run()
-                error_dialog.destroy()
-                return
-            
-            # Create new file with sample content
-            try:
-                with open(file_path, 'w') as f:
-                    f.write(self.sample_rules)
+            # Make sure filename has .rule extension
+            if not filename.endswith('.rule'):
+                filename += '.rule'
                 
-                # Refresh rules list
+            # Create the new rule file
+            filepath = os.path.join(self.rules_dir, filename)
+            
+            try:
+                content = ""
+                
+                if template_option == 0:  # Empty File
+                    content = "# ERPCT Rule File\n# Created: " + \
+                             time.strftime("%Y-%m-%d %H:%M:%S") + "\n\n"
+                elif template_option == 1:  # Basic Examples
+                    content = self.sample_rules
+                elif template_option == 2:  # Generate Basic Rules
+                    # Create the file directly using the rule generator
+                    self.rule_generator.generate_rule_file(
+                        filename, 
+                        "basic", 
+                        50, 
+                        "Basic password mutation rules"
+                    )
+                    self.refresh_rules()
+                    
+                    # Select the newly created file
+                    for i, row in enumerate(self.rules_store):
+                        if os.path.basename(row[1]) == filename:
+                            self.rules_view.set_cursor(Gtk.TreePath(i), None, False)
+                            break
+                            
+                    dialog.destroy()
+                    return
+                elif template_option == 3:  # Generate Advanced Rules
+                    # Create the file directly using the rule generator
+                    self.rule_generator.generate_rule_file(
+                        filename, 
+                        "advanced", 
+                        100, 
+                        "Advanced password mutation rules"
+                    )
+                    self.refresh_rules()
+                    
+                    # Select the newly created file
+                    for i, row in enumerate(self.rules_store):
+                        if os.path.basename(row[1]) == filename:
+                            self.rules_view.set_cursor(Gtk.TreePath(i), None, False)
+                            break
+                            
+                    dialog.destroy()
+                    return
+                
+                with open(filepath, 'w') as f:
+                    f.write(content)
+                
+                # Load the new file
+                self.current_rule_file = filepath
+                self.rule_buffer.set_text(content)
+                self.modified = False
+                self.save_button.set_sensitive(False)
+                self.delete_button.set_sensitive(True)
+                
+                # Refresh the list
                 self.refresh_rules()
                 
-                # Select and load the new file
+                # Select the newly created file
                 for i, row in enumerate(self.rules_store):
-                    if row[1] == file_path:
+                    if row[1] == filepath:
                         self.rules_view.set_cursor(Gtk.TreePath(i), None, False)
                         break
                 
             except Exception as e:
-                self.logger.error(f"Error creating new rule file: {str(e)}")
+                self.logger.error(f"Error creating rule file: {str(e)}")
                 error_dialog = Gtk.MessageDialog(
                     transient_for=self.get_toplevel(),
                     flags=0,
@@ -453,6 +468,117 @@ $[x]  - Append character x ($1: password → password1)
                 error_dialog.format_secondary_text(str(e))
                 error_dialog.run()
                 error_dialog.destroy()
+        
+        dialog.destroy()
+    
+    def _on_generate_clicked(self, button):
+        """Handle generate button click.
+        
+        Args:
+            button: Button that was clicked
+        """
+        # Create dialog for rule generation
+        dialog = Gtk.Dialog(
+            title="Generate Rules",
+            transient_for=self.get_toplevel(),
+            flags=0,
+            buttons=(
+                Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+                Gtk.STOCK_OK, Gtk.ResponseType.OK
+            )
+        )
+        dialog.set_default_size(400, 200)
+        
+        # Setup dialog content
+        box = dialog.get_content_area()
+        box.set_spacing(6)
+        
+        # File name entry
+        name_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        name_label = Gtk.Label(label="File Name:")
+        name_box.pack_start(name_label, False, False, 0)
+        
+        name_entry = Gtk.Entry()
+        name_entry.set_text("generated.rule")
+        name_box.pack_start(name_entry, True, True, 0)
+        
+        box.pack_start(name_box, False, False, 0)
+        
+        # Complexity selection
+        complexity_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        complexity_label = Gtk.Label(label="Complexity:")
+        complexity_box.pack_start(complexity_label, False, False, 0)
+        
+        complexity_combo = Gtk.ComboBoxText()
+        complexity_combo.append_text("Basic")
+        complexity_combo.append_text("Medium")
+        complexity_combo.append_text("Advanced")
+        complexity_combo.set_active(1)  # Default to Medium
+        complexity_box.pack_start(complexity_combo, True, True, 0)
+        
+        box.pack_start(complexity_box, False, False, 0)
+        
+        # Rule count
+        count_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        count_label = Gtk.Label(label="Number of Rules:")
+        count_box.pack_start(count_label, False, False, 0)
+        
+        count_adjustment = Gtk.Adjustment(value=100, lower=10, upper=1000, step_increment=10, page_increment=50)
+        count_spinner = Gtk.SpinButton()
+        count_spinner.set_adjustment(count_adjustment)
+        count_box.pack_start(count_spinner, True, True, 0)
+        
+        box.pack_start(count_box, False, False, 0)
+        
+        # Description
+        desc_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        desc_label = Gtk.Label(label="Description:")
+        desc_box.pack_start(desc_label, False, False, 0)
+        
+        desc_entry = Gtk.Entry()
+        desc_entry.set_text("Generated password mutation rules")
+        desc_box.pack_start(desc_entry, True, True, 0)
+        
+        box.pack_start(desc_box, False, False, 0)
+        
+        dialog.show_all()
+        response = dialog.run()
+        
+        if response == Gtk.ResponseType.OK:
+            filename = name_entry.get_text().strip()
+            complexity = ["basic", "medium", "advanced"][complexity_combo.get_active()]
+            count = count_spinner.get_value_as_int()
+            description = desc_entry.get_text().strip()
+            
+            # Generate the rule file
+            success = self.rule_generator.generate_rule_file(
+                filename, 
+                complexity, 
+                count, 
+                description
+            )
+            
+            if success:
+                self.refresh_rules()
+                
+                # Select the newly created file
+                for i, row in enumerate(self.rules_store):
+                    if os.path.basename(row[1]) == filename or os.path.basename(row[1]) == filename + ".rule":
+                        self.rules_view.set_cursor(Gtk.TreePath(i), None, False)
+                        break
+            else:
+                error_dialog = Gtk.MessageDialog(
+                    transient_for=self.get_toplevel(),
+                    flags=0,
+                    message_type=Gtk.MessageType.ERROR,
+                    buttons=Gtk.ButtonsType.OK,
+                    text="Error Generating Rules"
+                )
+                error_dialog.format_secondary_text("Failed to generate rule file.")
+                error_dialog.run()
+                error_dialog.destroy()
+        
+        dialog.destroy()
     
     def _on_save_clicked(self, button):
         """Handle save button click.
@@ -460,8 +586,7 @@ $[x]  - Append character x ($1: password → password1)
         Args:
             button: Button that was clicked
         """
-        if self.current_rule_file:
-            self._save_current_file()
+        self._save_current_file()
     
     def _on_delete_clicked(self, button):
         """Handle delete button click.
@@ -475,11 +600,13 @@ $[x]  - Append character x ($1: password → password1)
         dialog = Gtk.MessageDialog(
             transient_for=self.get_toplevel(),
             flags=0,
-            message_type=Gtk.MessageType.WARNING,
+            message_type=Gtk.MessageType.QUESTION,
             buttons=Gtk.ButtonsType.YES_NO,
             text="Delete Rule File"
         )
-        dialog.format_secondary_text(f"Are you sure you want to delete the rule file '{os.path.basename(self.current_rule_file)}'?")
+        dialog.format_secondary_text(
+            f"Are you sure you want to delete {os.path.basename(self.current_rule_file)}?"
+        )
         response = dialog.run()
         dialog.destroy()
         
@@ -487,14 +614,14 @@ $[x]  - Append character x ($1: password → password1)
             try:
                 os.remove(self.current_rule_file)
                 
-                # Clear current file
+                # Clear the editor
                 self.current_rule_file = None
                 self.rule_buffer.set_text("")
                 self.modified = False
                 self.save_button.set_sensitive(False)
                 self.delete_button.set_sensitive(False)
                 
-                # Refresh rules list
+                # Refresh the list
                 self.refresh_rules()
                 
             except Exception as e:
@@ -559,85 +686,16 @@ $[x]  - Append character x ($1: password → password1)
             if line and not line.startswith('#'):
                 rules.append(line)
         
-        # Apply each rule to the password
+        # Apply each rule to the password using the transformer module
         for rule in rules:
-            result = self._apply_rule(password, rule)
-            results.append(f"{rule}: {password} → {result}")
+            try:
+                result = apply_rule(password, rule)
+                results.append(f"{rule}: {password} → {result}")
+            except Exception as e:
+                self.logger.warning(f"Error applying rule '{rule}': {str(e)}")
+                results.append(f"{rule}: ERROR - {str(e)}")
         
         return results
-    
-    def _apply_rule(self, password, rule):
-        """Apply a single rule to a password.
-        
-        Args:
-            password: Password to transform
-            rule: Rule to apply
-            
-        Returns:
-            Transformed password
-        """
-        result = password
-        
-        # Simple rule processing for testing
-        i = 0
-        while i < len(rule):
-            char = rule[i]
-            
-            # Process based on rule character
-            if char == ':':
-                # Do nothing
-                pass
-            elif char == 'l':
-                # Lowercase
-                result = result.lower()
-            elif char == 'u':
-                # Uppercase
-                result = result.upper()
-            elif char == 'c':
-                # Capitalize
-                if result:
-                    result = result[0].upper() + result[1:]
-            elif char == 'r':
-                # Reverse
-                result = result[::-1]
-            elif char == 'd':
-                # Duplicate
-                result = result + result
-            elif char == 's' and i + 2 < len(rule):
-                # Substitute
-                a = rule[i+1]
-                b = rule[i+2]
-                result = result.replace(a, b)
-                i += 2
-            elif char == '@' and i + 1 < len(rule):
-                # Purge character
-                a = rule[i+1]
-                result = result.replace(a, '')
-                i += 1
-            elif char == '^' and i + 1 < len(rule):
-                # Prepend
-                a = rule[i+1]
-                result = a + result
-                i += 1
-            elif char == '$' and i + 1 < len(rule):
-                # Append
-                a = rule[i+1]
-                result = result + a
-                i += 1
-            elif char == '<' and i + 1 < len(rule) and rule[i+1].isdigit():
-                # Truncate
-                n = int(rule[i+1])
-                result = result[:n]
-                i += 1
-            elif char == '>' and i + 1 < len(rule) and rule[i+1].isdigit():
-                # Skip first N
-                n = int(rule[i+1])
-                result = result[n:]
-                i += 1
-            
-            i += 1
-        
-        return result
     
     def _save_current_file(self):
         """Save the current rule file."""
@@ -714,13 +772,13 @@ $[x]  - Append character x ($1: password → password1)
         # Clear the store
         self.rules_store.clear()
         
-        # Add rule files from directory
-        if os.path.exists(self.rules_dir):
-            for filename in os.listdir(self.rules_dir):
-                filepath = os.path.join(self.rules_dir, filename)
-                if os.path.isfile(filepath) and filename.endswith(".rule"):
-                    self.rules_store.append([filename, filepath])
+        # Get rule files from parser
+        rule_files = self.rule_parser.get_available_rule_files()
         
+        # Add to store
+        for filename, filepath in rule_files.items():
+            self.rules_store.append([filename, filepath])
+            
         # Sort by name
         self.rules_store.set_sort_column_id(0, Gtk.SortType.ASCENDING)
     

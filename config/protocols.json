@@ -4,7 +4,7 @@
       "name": "ssh",
       "display_name": "SSH",
       "module": "src.protocols.ssh",
-      "class": "SSHProtocol",
+      "class": "SSH",
       "description": "Secure Shell protocol",
       "category": "remote_access"
     },

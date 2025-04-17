@@ -29,6 +29,7 @@ class NetworkScanner(Gtk.Box):
         self.logger = get_logger(__name__)
         self.scan_thread = None
         self.stop_scan_flag = False
+        self.target_callback = None
         
         # Scan configuration section
         config_frame = Gtk.Frame(label="Scan Configuration")
@@ -249,6 +250,15 @@ class NetworkScanner(Gtk.Box):
         self.clear_button.connect("clicked", self._on_clear_results)
         action_box.pack_start(self.clear_button, False, False, 0)
     
+    def set_target_callback(self, callback):
+        """Set the callback function for adding targets.
+        
+        Args:
+            callback: Function to call when a target is added
+        """
+        self.logger.debug("Setting target callback")
+        self.target_callback = callback
+
     def _on_scan_clicked(self, button):
         """Handle scan button click."""
         if self.scan_thread and self.scan_thread.is_alive():
@@ -505,17 +515,25 @@ class NetworkScanner(Gtk.Box):
             self.port_store.append([port, protocol, service, version, status])
     
     def _on_add_target(self, button):
-        """Handle add to targets button click."""
+        """Handle adding the selected host to targets."""
         selection = self.host_view.get_selection()
-        model, iter = selection.get_selected()
-        
-        if iter:
-            ip = model.get_value(iter, 0)
-            hostname = model.get_value(iter, 1)
+        model, treeiter = selection.get_selected()
+        if treeiter is not None:
+            ip = model[treeiter][0]
+            hostname = model[treeiter][1]
             
-            # In a real implementation, this would add the host to the target list
-            self.logger.info(f"Adding target: {ip} ({hostname})")
+            # Call the target callback if set
+            if self.target_callback:
+                self.logger.debug(f"Calling target callback with {ip}")
+                target_data = {
+                    "host": ip,
+                    "hostname": hostname
+                }
+                self.target_callback(target_data)
+            else:
+                self.logger.warning("Target callback not set")
             
+            # Show confirmation
             dialog = Gtk.MessageDialog(
                 transient_for=self.get_toplevel(),
                 flags=0,
@@ -523,7 +541,7 @@ class NetworkScanner(Gtk.Box):
                 buttons=Gtk.ButtonsType.OK,
                 text="Target Added"
             )
-            dialog.format_secondary_text(f"Added {ip} ({hostname}) to the target list.")
+            dialog.format_secondary_text(f"Added {ip} to targets.")
             dialog.run()
             dialog.destroy()
     

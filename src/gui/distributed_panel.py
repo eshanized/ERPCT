@@ -22,6 +22,7 @@ class DistributedPanel(Gtk.Box):
         self.set_border_width(10)
         
         self.logger = get_logger(__name__)
+        self.attack_callback = None
         
         # Agent management frame
         agent_frame = Gtk.Frame(label="Agent Management")
@@ -336,6 +337,14 @@ class DistributedPanel(Gtk.Box):
         current_value = self.agent_store.get_value(iter, 7)
         self.agent_store.set_value(iter, 7, not current_value)
         
+    def set_attack_callback(self, callback):
+        """Set callback function for distributed attack.
+        
+        Args:
+            callback: Function to call with distributed attack config
+        """
+        self.attack_callback = callback
+        
     def _on_distribute_attack(self, button):
         """Handle distribute attack button click."""
         # Count selected agents
@@ -357,10 +366,29 @@ class DistributedPanel(Gtk.Box):
             dialog.destroy()
             return
             
-        # In a real implementation, this would create and distribute tasks
-        self.logger.info(f"Distributing attack to {len(selected_agents)} agents")
+        # Get distribution configuration
+        distribution_mode = self.mode_combo.get_active_text()
+        split_method = self.split_combo.get_active_text()
+        chunk_size = self.chunk_spin.get_value_as_int()
+        max_tasks = self.max_tasks_spin.get_value_as_int()
         
-        # Simulate task creation (in a real implementation, would get attack config from elsewhere)
+        # Create distributed configuration
+        distributed_config = {
+            "agents": [{"id": agent_id, "name": name} for agent_id, name in selected_agents],
+            "distribution_mode": distribution_mode,
+            "split_method": split_method,
+            "chunk_size": chunk_size,
+            "max_tasks_per_agent": max_tasks
+        }
+        
+        # Call the attack callback if set
+        if self.attack_callback:
+            self.logger.info(f"Distributing attack to {len(selected_agents)} agents")
+            self.attack_callback(distributed_config)
+        else:
+            self.logger.error("No attack callback set")
+        
+        # Simulate task creation for UI demonstration
         import time
         import random
         

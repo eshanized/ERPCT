@@ -88,8 +88,13 @@ def main() -> int:
         protocols = protocol_registry.get_all_protocols()
         print("Available protocols:")
         for name, protocol_class in protocols.items():
-            instance = protocol_class({})
-            print(f"  {name}: {instance.__doc__ or 'No description'} (default port: {instance.default_port})")
+            try:
+                # Use a dummy config with a host for testing purposes
+                dummy_config = {"host": "example.com"}
+                instance = protocol_class(dummy_config)
+                print(f"  {name}: {instance.__doc__ or 'No description'} (default port: {instance.default_port})")
+            except Exception as e:
+                print(f"  {name}: Error initializing: {str(e)}")
         return 0
     
     # Check for required arguments

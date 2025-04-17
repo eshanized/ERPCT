@@ -27,6 +27,7 @@ class ReportGenerator(Gtk.Box):
         self.set_border_width(10)
         
         self.logger = get_logger(__name__)
+        self.results_source = None
         
         # Available reports
         report_frame = Gtk.Frame(label="Available Reports")
@@ -646,3 +647,12 @@ class ReportGenerator(Gtk.Box):
             ]
             
             buffer.set_text("\n".join(content)) 
+
+    def set_results_source(self, results_source):
+        """Set the results source for the report generator.
+        
+        Args:
+            results_source: The results explorer instance to use as data source
+        """
+        self.results_source = results_source
+        self.logger.info("Results source set for report generator") 

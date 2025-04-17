@@ -3,265 +3,216 @@
 
 """
 SSH protocol implementation for ERPCT.
-This module provides support for SSH authentication attacks.
+This module provides SSH authentication capabilities for password testing.
 """
 
 import socket
 import time
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, Optional, Tuple, Any
 
 from src.protocols.base import ProtocolBase
 from src.utils.logging import get_logger
 
-try:
-    import paramiko
-    SSH_AVAILABLE = True
-except ImportError:
-    SSH_AVAILABLE = False
-
 
 class SSH(ProtocolBase):
-    """SSH protocol implementation for password attacks."""
+    """SSH protocol implementation."""
     
     def __init__(self, config: Dict[str, Any]):
-        """Initialize the SSH protocol handler.
+        """Initialize the SSH protocol.
         
         Args:
-            config: Dictionary containing protocol configuration
+            config: Dictionary containing SSH configuration options
         """
         self.logger = get_logger(__name__)
-        self.config = config
         
-        if not SSH_AVAILABLE:
-            self.logger.error("paramiko package is required but not installed")
-            raise ImportError("paramiko package is required for SSH support")
+        # Check for paramiko package
+        try:
+            import paramiko
+            self.paramiko = paramiko
+        except ImportError:
+            raise ImportError("SSH protocol requires paramiko package: pip install paramiko")
         
-        # Extract configuration
-        self.host = config.get("host", "")
+        # Basic configuration - accept both 'host' and 'target' for compatibility
+        self.host = config.get("host") or config.get("target")
+        if not self.host:
+            self.logger.error(f"Host/target not specified in config: {config}")
+            raise ValueError("Host must be specified for SSH protocol")
+            
         self.port = int(config.get("port", self.default_port))
         self.timeout = int(config.get("timeout", 10))
-        self.key_auth_enabled = config.get("key_auth_enabled", False)
-        self.key_file = config.get("key_file", None)
-        self.key_passphrase = config.get("key_passphrase", None)
-        self.auth_timeout = config.get("auth_timeout", 5)
-        self.banner_timeout = config.get("banner_timeout", 5)
-        self.allow_agent = config.get("allow_agent", False)
-        self.look_for_keys = config.get("look_for_keys", False)
         
-        # Optional command to execute after login
-        self.command = config.get("command", None)
-        self.command_timeout = config.get("command_timeout", 10)
+        # SSH options
+        self.allow_agent = bool(config.get("allow_agent", False))
+        self.look_for_keys = bool(config.get("look_for_keys", False))
+        self.auth_timeout = int(config.get("auth_timeout", 5))
+        self.banner_timeout = int(config.get("banner_timeout", 5))
         
-        if not self.host:
-            raise ValueError("SSH host must be specified")
-    
+        # Verbose logging for debugging
+        if config.get("verbose_logging", False):
+            self.paramiko.common.logging.basicConfig(level=self.paramiko.common.DEBUG)
+
     def test_credentials(self, username: str, password: str) -> Tuple[bool, Optional[str]]:
-        """Test SSH authentication with the given credentials.
+        """Test SSH credentials.
         
         Args:
-            username: Username to test
-            password: Password to test
+            username: SSH username
+            password: SSH password
             
         Returns:
             Tuple containing (success_bool, optional_message)
-                success_bool: True if authentication succeeded, False otherwise
-                optional_message: Additional information or error message
         """
-        if not username:
-            return False, "Username must not be empty"
-            
-        ssh_client = None
+        self.logger.debug(f"Testing SSH credentials {username}:{password} on {self.host}:{self.port}")
+        
+        client = self.paramiko.SSHClient()
+        client.set_missing_host_key_policy(self.paramiko.AutoAddPolicy())
         
         try:
-            # Create SSH client
-            ssh_client = paramiko.SSHClient()
-            ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            # Connect with credentials
+            client.connect(
+                hostname=self.host,
+                port=self.port,
+                username=username,
+                password=password,
+                timeout=self.timeout,
+                allow_agent=self.allow_agent,
+                look_for_keys=self.look_for_keys,
+                auth_timeout=self.auth_timeout,
+                banner_timeout=self.banner_timeout
+            )
             
-            # Prepare connection parameters
-            connect_kwargs = {
-                'hostname': self.host,
-                'port': self.port,
-                'username': username,
-                'timeout': self.timeout,
-                'auth_timeout': self.auth_timeout,
-                'banner_timeout': self.banner_timeout,
-                'allow_agent': self.allow_agent,
-                'look_for_keys': self.look_for_keys
-            }
+            # If we get here, authentication was successful
+            self.logger.info(f"SSH authentication successful for {username} on {self.host}:{self.port}")
             
-            # Choose authentication method
-            if self.key_auth_enabled and self.key_file:
-                # Key-based authentication
-                try:
-                    # Load private key
-                    if self.key_passphrase:
-                        pkey = paramiko.RSAKey.from_private_key_file(
-                            self.key_file, 
-                            password=self.key_passphrase
-                        )
-                    else:
-                        pkey = paramiko.RSAKey.from_private_key_file(self.key_file)
-                        
-                    connect_kwargs['pkey'] = pkey
-                except Exception as e:
-                    self.logger.error(f"Failed to load SSH key: {str(e)}")
-                    return False, f"Failed to load SSH key: {str(e)}"
-            else:
-                # Password authentication
-                connect_kwargs['password'] = password
+            # Try to get the hostname as additional information
+            try:
+                stdin, stdout, stderr = client.exec_command("hostname", timeout=5)
+                hostname = stdout.read().decode('utf-8').strip()
+                return True, f"Authentication successful (hostname: {hostname})"
+            except:
+                # If command execution fails, still return success
+                return True, "Authentication successful"
             
-            # Attempt connection
-            ssh_client.connect(**connect_kwargs)
-            
-            # If a command is specified, execute it to verify real access
-            if self.command:
-                stdin, stdout, stderr = ssh_client.exec_command(
-                    self.command, 
-                    timeout=self.command_timeout
-                )
-                exit_code = stdout.channel.recv_exit_status()
-                
-                if exit_code != 0:
-                    # Command failed
-                    error_output = stderr.read().decode('utf-8', errors='ignore')
-                    warning_msg = f"Command execution failed with exit code {exit_code}: {error_output}"
-                    self.logger.warning(warning_msg)
-                    # We still return True because authentication worked
-            
-            # If we got here, authentication succeeded
-            self.logger.info(f"SSH authentication successful for user {username}")
-            return True, None
-            
-        except paramiko.AuthenticationException:
+        except self.paramiko.AuthenticationException:
             # Authentication failed
-            return False, "SSH authentication failed: Invalid credentials"
+            self.logger.debug(f"SSH authentication failed for {username} on {self.host}:{self.port}")
+            return False, None
             
-        except paramiko.SSHException as e:
-            # SSH specific error
-            error_msg = f"SSH error: {str(e)}"
-            self.logger.error(error_msg)
-            return False, error_msg
+        except socket.timeout:
+            # Connection timeout
+            self.logger.error(f"SSH connection timeout to {self.host}:{self.port}")
+            return False, "Connection timeout"
             
-        except (socket.timeout, socket.error, ConnectionError) as e:
-            # Network error
-            error_msg = f"Network error: {str(e)}"
-            self.logger.error(error_msg)
-            return False, error_msg
+        except socket.error as e:
+            # Socket error
+            self.logger.error(f"SSH socket error: {str(e)}")
+            return False, f"Socket error: {str(e)}"
+            
+        except self.paramiko.SSHException as e:
+            # SSH protocol error
+            self.logger.error(f"SSH protocol error: {str(e)}")
+            return False, f"SSH error: {str(e)}"
             
         except Exception as e:
             # Unexpected error
-            error_msg = f"Unexpected error: {str(e)}"
-            self.logger.error(error_msg)
-            return False, error_msg
+            self.logger.error(f"Unexpected error in SSH authentication: {str(e)}")
+            return False, f"Error: {str(e)}"
             
         finally:
-            # Always close SSH client if it exists
-            if ssh_client:
-                try:
-                    ssh_client.close()
-                except:
-                    pass
-    
+            # Ensure the connection is closed
+            try:
+                client.close()
+            except:
+                pass
+
     def get_config_schema(self) -> Dict[str, Any]:
-        """Return the configuration schema for SSH protocol.
+        """Return configuration schema for SSH protocol.
         
         Returns:
-            JSON schema for protocol configuration
+            JSON schema object for SSH configuration
         """
         return {
             "type": "object",
+            "required": ["host"],
             "properties": {
                 "host": {
                     "type": "string",
-                    "title": "SSH Server",
-                    "description": "Hostname or IP address of the SSH server"
+                    "title": "Host",
+                    "description": "SSH server hostname or IP address"
                 },
                 "port": {
                     "type": "integer",
                     "title": "Port",
-                    "description": "Port number for SSH service (default: 22)",
-                    "default": 22
+                    "description": "SSH server port",
+                    "default": self.default_port
                 },
                 "timeout": {
                     "type": "integer",
-                    "title": "Connection Timeout",
+                    "title": "Timeout",
                     "description": "Connection timeout in seconds",
                     "default": 10
                 },
+                "allow_agent": {
+                    "type": "boolean",
+                    "title": "Allow Agent",
+                    "description": "Allow SSH agent for authentication",
+                    "default": False
+                },
+                "look_for_keys": {
+                    "type": "boolean",
+                    "title": "Look For Keys",
+                    "description": "Automatically search for SSH keys",
+                    "default": False
+                },
                 "auth_timeout": {
                     "type": "integer",
-                    "title": "Authentication Timeout",
+                    "title": "Auth Timeout",
                     "description": "Authentication timeout in seconds",
                     "default": 5
                 },
                 "banner_timeout": {
                     "type": "integer",
                     "title": "Banner Timeout",
-                    "description": "Time to wait for SSH banner",
+                    "description": "SSH banner timeout in seconds",
                     "default": 5
                 },
-                "key_auth_enabled": {
+                "verbose_logging": {
                     "type": "boolean",
-                    "title": "Enable Key Authentication",
-                    "description": "Use key-based authentication instead of password",
+                    "title": "Verbose Logging",
+                    "description": "Enable verbose SSH library logging",
                     "default": False
-                },
-                "key_file": {
-                    "type": "string",
-                    "title": "Key File",
-                    "description": "Path to private key file for key-based authentication"
-                },
-                "key_passphrase": {
-                    "type": "string",
-                    "title": "Key Passphrase",
-                    "description": "Passphrase for encrypted private key"
-                },
-                "allow_agent": {
-                    "type": "boolean",
-                    "title": "Allow SSH Agent",
-                    "description": "Allow use of SSH agent for authentication",
-                    "default": False
-                },
-                "look_for_keys": {
-                    "type": "boolean",
-                    "title": "Look for Keys",
-                    "description": "Search for discoverable private keys in ~/.ssh/",
-                    "default": False
-                },
-                "command": {
-                    "type": "string",
-                    "title": "Command to Execute",
-                    "description": "Optional command to execute after successful login"
-                },
-                "command_timeout": {
-                    "type": "integer",
-                    "title": "Command Timeout",
-                    "description": "Timeout for command execution in seconds",
-                    "default": 10
                 }
-            },
-            "required": ["host"]
+            }
         }
     
     @property
     def default_port(self) -> int:
-        """Return the default port for SSH.
+        """Return the default SSH port.
         
         Returns:
-            Default port number
+            Default SSH port (22)
         """
         return 22
     
     @property
     def name(self) -> str:
-        """Return the name of the protocol.
+        """Return the protocol name.
         
         Returns:
-            Protocol name
+            Protocol name 'ssh'
         """
-        return "SSH"
+        return "ssh"
+    
+    def cleanup(self) -> None:
+        """Clean up any resources.
+        
+        For SSH protocol, no cleanup is necessary.
+        """
+        pass
 
 
-# Register protocol
-from src.protocols import protocol_registry
-protocol_registry.register_protocol("ssh", SSH)
+# Register this protocol with the registry
+# This will be imported by the protocol registry
+def register_protocol():
+    """Register this protocol in the registry."""
+    from src.protocols import protocol_registry
+    protocol_registry.register_protocol("ssh", SSH)

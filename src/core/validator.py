@@ -14,10 +14,10 @@ from typing import Dict, List, Any, Optional, Callable, Union
 from src.utils.logging import get_logger
 
 
-class Validator:
-    """Base validator class.
+class PasswordValidator:
+    """Base validator class for password validation.
     
-    The Validator class provides an interface for validating passwords
+    The PasswordValidator class provides an interface for validating passwords
     against various authentication mechanisms such as hash comparison,
     network authentication, etc.
     """
@@ -127,7 +127,7 @@ class Validator:
         }
 
 
-class HashValidator(Validator):
+class HashValidator(PasswordValidator):
     """Validator for hash-based password authentication."""
     
     def __init__(self, config: Dict[str, Any]):
@@ -182,7 +182,7 @@ class HashValidator(Validator):
             return False
 
 
-class NetworkValidator(Validator):
+class NetworkValidator(PasswordValidator):
     """Validator for network-based password authentication."""
     
     def __init__(self, config: Dict[str, Any]):
@@ -277,24 +277,23 @@ validator_registry = {
 }
 
 
-def create_validator(config: Dict[str, Any]) -> Validator:
-    """Create a validator instance based on configuration.
+def create_validator(config: Dict[str, Any]) -> PasswordValidator:
+    """Factory function to create the appropriate validator.
     
     Args:
         config: Dictionary containing validator configuration
-               Must include 'validator_type'
-    
+        
     Returns:
         Validator instance
         
     Raises:
-        ValueError: If validator type is not supported
+        ValueError: If validator type is invalid
     """
-    validator_type = config.get("validator_type", "hash").lower()
+    validator_type = config.get("type", "").lower()
     
-    validator_class = validator_registry.get(validator_type)
-    
-    if not validator_class:
-        raise ValueError(f"Unsupported validator type: {validator_type}")
-        
-    return validator_class(config)
+    if validator_type == "hash":
+        return HashValidator(config)
+    elif validator_type == "network":
+        return NetworkValidator(config)
+    else:
+        raise ValueError(f"Invalid validator type: {validator_type}")

@@ -1,0 +1,235 @@
+# ERPCT Comprehensive Password Mutation Rules
+# This file contains a wide variety of password mutation rules
+# for advanced password cracking operations
+
+# Basic transformations
+:           # Do nothing (original password)
+l           # Convert to lowercase
+u           # Convert to uppercase
+c           # Capitalize
+r           # Reverse
+d           # Duplicate
+
+# Character removal (truncation)
+<5          # First 5 characters only
+<6          # First 6 characters only
+<7          # First 7 characters only
+<8          # First 8 characters only
+
+# Skip characters
+>1          # Skip first character 
+>2          # Skip first two characters
+>3          # Skip first three characters
+
+# Remove character classes
+@a          # Remove all 'a'
+@e          # Remove all 'e'
+@i          # Remove all 'i'
+@o          # Remove all 'o'
+@u          # Remove all 'u'
+@s          # Remove all 's'
+
+# Basic leetspeak substitutions
+sa@         # a -> @
+sa4         # a -> 4
+sb8         # b -> 8
+se3         # e -> 3
+si1         # i -> 1
+si!         # i -> !
+sl1         # l -> 1
+sl|         # l -> |
+so0         # o -> 0
+ss$         # s -> $
+st+         # t -> +
+
+# Common simple prefixes
+^1
+^!
+^.
+^-
+^_
+^*
+^@
+^#
+
+# Common simple suffixes
+$1
+$!
+$.
+$-
+$_
+$*
+$@
+$#
+
+# Numeric suffixes
+$0
+$1
+$2
+$3
+$4
+$5
+$6
+$7
+$8
+$9
+$01
+$12
+$123
+$1234
+
+# Year suffixes
+$19
+$20
+$2000
+$2020
+$2021
+$2022
+$2023
+$2024
+$23
+$24
+
+# Special character suffixes
+$!
+$@
+$#
+$%
+$&
+$*
+$?
+$!@
+$!@#
+
+# Common domain suffixes
+$123
+$.com
+$.net
+$.org
+
+# Common word suffixes
+$admin
+$pass
+$password
+$user
+$login
+$secure
+
+# Case manipulation with suffix
+c$1
+c$123
+c$!
+c$!@#
+c$2023
+u$1
+u$123
+u$!
+u$!@#
+u$2023
+l$1
+l$123
+l$!
+l$!@#
+l$2023
+
+# Leet transformations with suffix
+sa@$1
+sa@$!
+se3$1
+se3$!
+si1$1
+si1$!
+so0$1
+so0$!
+
+# Multiple leet transformations
+sa@se3
+sa@si1
+sa@so0
+se3si1
+se3so0
+si1so0
+sa@se3si1
+sa@se3so0
+sa@si1so0
+se3si1so0
+sa@se3si1so0
+
+# Multiple leet with suffix
+sa@se3$1
+sa@si1$1
+sa@so0$1
+se3si1$1
+se3so0$1
+si1so0$1
+sa@se3si1$1
+sa@se3so0$1
+sa@si1so0$1
+se3si1so0$1
+sa@se3si1so0$1
+
+# Case manipulation with leet
+csa@
+cse3
+csi1
+cso0
+csa@se3
+csa@si1
+csa@so0
+cse3si1
+cse3so0
+csi1so0
+csa@se3si1
+csa@se3so0
+csa@si1so0
+cse3si1so0
+csa@se3si1so0
+
+# Complex combined transformations
+csa@$1
+cse3$1
+csi1$1
+cso0$1
+csa@se3$1
+csa@si1$1
+csa@so0$1
+cse3si1$1
+cse3so0$1
+csi1so0$1
+csa@se3si1$1
+csa@se3so0$1
+csa@si1so0$1
+cse3si1so0$1
+csa@se3si1so0$1
+
+csa@$!
+cse3$!
+csi1$!
+cso0$!
+csa@se3$!
+csa@si1$!
+csa@so0$!
+cse3si1$!
+cse3so0$!
+csi1so0$!
+csa@se3si1$!
+csa@se3so0$!
+csa@si1so0$!
+cse3si1so0$!
+csa@se3si1so0$!
+
+csa@$2023
+cse3$2023
+csi1$2023
+cso0$2023
+csa@se3$2023
+csa@si1$2023
+csa@so0$2023
+cse3si1$2023
+cse3so0$2023
+csi1so0$2023
+csa@se3si1$2023
+csa@se3so0$2023
+csa@si1so0$2023
+cse3si1so0$2023
+csa@se3si1so0$2023

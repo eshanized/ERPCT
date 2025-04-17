@@ -55,3 +55,4 @@ Thumbs.db
 results/
 found_passwords.txt
 targets.txt
+*_test.py

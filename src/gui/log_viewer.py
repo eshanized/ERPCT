@@ -486,32 +486,44 @@ class LogViewer(Gtk.Box):
         self.logs_store.set_sort_column_id(1, Gtk.SortType.DESCENDING)
     
     def get_current_log_file(self):
-        """Get the path of the currently displayed log file.
+        """Get the current log file path.
         
         Returns:
-            Path to current log file or None if no file is loaded
+            str: Path to current log file, or None
         """
         return self.current_log_file
-    
-    def clear_current_log(self):
-        """Clear the currently displayed log file.
         
-        Returns:
-            Boolean indicating success
-        """
-        if not self.current_log_file:
-            return False
-            
-        try:
-            with open(self.current_log_file, 'w') as f:
-                f.write("")
-            
-            # Clear the buffer
-            self.log_buffer.set_text("")
-            
-            self.logger.info(f"Log file cleared: {self.current_log_file}")
-            return True
-            
-        except Exception as e:
-            self.logger.error(f"Error clearing log file: {str(e)}")
-            return False
+    def clear_current_log(self):
+        """Clear the contents of the current log file."""
+        if self.current_log_file and os.path.exists(self.current_log_file):
+            try:
+                # Write empty content to the file
+                with open(self.current_log_file, 'w') as f:
+                    f.write("")
+                
+                # Reload the file
+                self.load_log_file(self.current_log_file, refresh=True)
+                
+                self.logger.info(f"Cleared log file: {self.current_log_file}")
+                return True
+            except Exception as e:
+                self.logger.error(f"Error clearing log file: {str(e)}")
+                return False
+        return False
+        
+    def start_log_monitoring(self):
+        """Start monitoring logs for updates."""
+        # If there is already an active log file, start live updating it
+        if self.current_log_file and os.path.exists(self.current_log_file):
+            self.live_update_switch.set_active(True)
+            self._on_live_update_toggled(self.live_update_switch, None)
+            self.logger.debug("Started log monitoring for current log file")
+        else:
+            # Try to select the first log file in the list
+            if len(self.logs_store) > 0:
+                first_iter = self.logs_store.get_iter_first()
+                if first_iter:
+                    self.selection.select_iter(first_iter)
+                    self.logger.debug("Selected first log file for monitoring")
+        
+        return True

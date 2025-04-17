@@ -25,6 +25,7 @@ class TaskScheduler(Gtk.Box):
         self.set_border_width(10)
         
         self.logger = get_logger(__name__)
+        self.attack_callback = None
         
         # Scheduled tasks frame
         task_frame = Gtk.Frame(label="Scheduled Tasks")
@@ -258,6 +259,22 @@ class TaskScheduler(Gtk.Box):
                 ])
                 
                 self.logger.info(f"Added scheduled task: {name}")
+                
+                # Prepare schedule configuration
+                schedule_config = {
+                    "task_id": task_id,
+                    "name": name,
+                    "description": description,
+                    "schedule_type": schedule_type,
+                    "next_run": next_run.strftime("%Y-%m-%d %H:%M"),
+                    "immediate": False
+                }
+                
+                # Call the attack callback if set
+                if self.attack_callback:
+                    self.attack_callback(schedule_config)
+                else:
+                    self.logger.warning("No attack callback set, task will only be tracked in UI")
         
         dialog.destroy()
     
@@ -366,6 +383,8 @@ class TaskScheduler(Gtk.Box):
         if iter:
             task_id = model.get_value(iter, 0)
             task_name = model.get_value(iter, 1)
+            task_desc = model.get_value(iter, 2)
+            schedule_type = model.get_value(iter, 3)
             current_status = model.get_value(iter, 5)
             
             if current_status != "Running":
@@ -373,6 +392,21 @@ class TaskScheduler(Gtk.Box):
                 model.set_value(iter, 5, "Running")
                 model.set_value(iter, 6, 0.0)
                 self.logger.info(f"Manually started task: {task_name} (ID: {task_id})")
+                
+                # Prepare schedule configuration
+                schedule_config = {
+                    "task_id": task_id,
+                    "name": task_name,
+                    "description": task_desc,
+                    "schedule_type": schedule_type,
+                    "immediate": True
+                }
+                
+                # Call the attack callback if set
+                if self.attack_callback:
+                    self.attack_callback(schedule_config)
+                else:
+                    self.logger.error("No attack callback set")
     
     def _on_pause_task(self, button):
         """Handle pause task button click."""
@@ -401,6 +435,14 @@ class TaskScheduler(Gtk.Box):
             if current_status == "Paused":
                 model.set_value(iter, 5, "Running")
                 self.logger.info(f"Resumed task: {task_name} (ID: {task_id})")
+
+    def set_attack_callback(self, callback):
+        """Set callback function for scheduled attacks.
+        
+        Args:
+            callback: Function to call with schedule config
+        """
+        self.attack_callback = callback
 
 
 class TaskDialog(Gtk.Dialog):

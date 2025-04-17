@@ -25,8 +25,11 @@ class FTPProtocol(ProtocolBase):
             config: Dictionary containing FTP configuration options
         """
         self.logger = get_logger(__name__)
-        self.host = config.get("host")
+        
+        # Accept either 'host' or 'target' for compatibility
+        self.host = config.get("host") or config.get("target")
         if not self.host:
+            self.logger.error(f"Host/target not specified in config: {config}")
             raise ValueError("Host must be specified for FTP protocol")
             
         self.port = int(config.get("port", self.default_port))
@@ -178,3 +181,10 @@ class FTPProtocol(ProtocolBase):
         are closed after each test.
         """
         pass
+
+
+# Register this protocol with the registry
+def register_protocol():
+    """Register this protocol in the registry."""
+    from src.protocols import protocol_registry
+    protocol_registry.register_protocol("ftp", FTPProtocol)

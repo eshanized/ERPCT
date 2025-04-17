@@ -30,6 +30,9 @@ class ResultsExplorer(Gtk.Box):
         self.results_dir = os.path.join(os.path.expanduser("~"), ".erpct", "results")
         os.makedirs(self.results_dir, exist_ok=True)
         
+        # Initialize results dictionary
+        self.results = {}
+        
         # Create UI components
         self._create_results_browser()
         self._create_results_details()
