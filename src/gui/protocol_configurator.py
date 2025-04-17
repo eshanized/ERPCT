@@ -114,79 +114,90 @@ class ProtocolConfigurator(Gtk.Box):
                 default_config["host"] = "example.com"
                 default_config["domain"] = ""
             
-            protocol = protocol_class(default_config)
-            
-            # Update info label
-            info_text = f"{protocol.__doc__ or 'No description'}\nDefault port: {protocol.default_port}"
-            self.protocol_info_label.set_text(info_text)
-            
-            # Get protocol options
-            options = protocol.get_options()
-            
-            if not options:
-                label = Gtk.Label(label="No configurable options for this protocol.")
-                self.options_box.pack_start(label, False, False, 0)
-            else:
-                # Create widgets for each option
-                for option_name, option_info in options.items():
-                    option_type = option_info.get("type", "string")
-                    option_default = option_info.get("default", "")
-                    option_desc = option_info.get("description", "")
-                    
-                    # Create option row
-                    hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-                    
-                    # Label with tooltip
-                    label = Gtk.Label(label=f"{option_name}:", xalign=0)
-                    label.set_tooltip_text(option_desc)
-                    label.set_size_request(150, -1)
-                    hbox.pack_start(label, False, False, 0)
-                    
-                    # Widget depends on option type
-                    if option_type == "boolean":
-                        widget = Gtk.CheckButton()
-                        widget.set_active(bool(option_default))
+            try:
+                protocol = protocol_class(default_config)
+                
+                # Update info label
+                info_text = f"{protocol.__doc__ or 'No description'}\nDefault port: {protocol.default_port}"
+                self.protocol_info_label.set_text(info_text)
+                
+                # Get protocol options
+                options = protocol.get_options()
+                
+                if not options:
+                    label = Gtk.Label(label="No configurable options for this protocol.")
+                    self.options_box.pack_start(label, False, False, 0)
+                else:
+                    # Create widgets for each option
+                    for option_name, option_info in options.items():
+                        option_type = option_info.get("type", "string")
+                        option_default = option_info.get("default", "")
+                        option_desc = option_info.get("description", "")
                         
-                    elif option_type == "integer":
-                        adjustment = Gtk.Adjustment(
-                            value=int(option_default) if option_default else 0,
-                            lower=-1000000,
-                            upper=1000000,
-                            step_increment=1,
-                            page_increment=10
-                        )
-                        widget = Gtk.SpinButton()
-                        widget.set_adjustment(adjustment)
+                        # Create option row
+                        hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
                         
-                    elif option_type == "select":
-                        widget = Gtk.ComboBoxText()
-                        for choice in option_info.get("choices", []):
-                            widget.append_text(str(choice))
+                        # Label with tooltip
+                        label = Gtk.Label(label=f"{option_name}:", xalign=0)
+                        label.set_tooltip_text(option_desc)
+                        label.set_size_request(150, -1)
+                        hbox.pack_start(label, False, False, 0)
                         
-                        # Set default if in choices
-                        if option_default in option_info.get("choices", []):
-                            index = option_info.get("choices", []).index(option_default)
-                            widget.set_active(index)
-                        elif option_info.get("choices", []):
-                            widget.set_active(0)
+                        # Widget depends on option type
+                        if option_type == "boolean":
+                            widget = Gtk.CheckButton()
+                            widget.set_active(bool(option_default))
                             
-                    else:  # Default to string
-                        widget = Gtk.Entry()
-                        widget.set_text(str(option_default) if option_default is not None else "")
-                    
-                    hbox.pack_start(widget, True, True, 0)
-                    self.options_box.pack_start(hbox, False, False, 0)
-                    
-                    # Store widget reference
-                    self.option_widgets[option_name] = widget
-            
-            self.options_box.show_all()
+                        elif option_type == "integer":
+                            adjustment = Gtk.Adjustment(
+                                value=int(option_default) if option_default else 0,
+                                lower=-1000000,
+                                upper=1000000,
+                                step_increment=1,
+                                page_increment=10
+                            )
+                            widget = Gtk.SpinButton()
+                            widget.set_adjustment(adjustment)
+                            
+                        elif option_type == "select":
+                            widget = Gtk.ComboBoxText()
+                            for choice in option_info.get("choices", []):
+                                widget.append_text(str(choice))
+                            
+                            # Set default if in choices
+                            if option_default in option_info.get("choices", []):
+                                index = option_info.get("choices", []).index(option_default)
+                                widget.set_active(index)
+                            elif option_info.get("choices", []):
+                                widget.set_active(0)
+                                
+                        else:  # Default to string
+                            widget = Gtk.Entry()
+                            widget.set_text(str(option_default) if option_default is not None else "")
+                        
+                        hbox.pack_start(widget, True, True, 0)
+                        self.options_box.pack_start(hbox, False, False, 0)
+                        
+                        # Store widget reference
+                        self.option_widgets[option_name] = widget
+                
+                self.options_box.show_all()
+            except ImportError as e:
+                self.logger.error(f"Missing dependency for protocol {protocol_name}: {str(e)}")
+                label = Gtk.Label(label=f"This protocol requires additional dependencies:\n{str(e)}")
+                self.options_box.pack_start(label, False, False, 0)
+                self.options_box.show_all()
             
         except Exception as e:
             self.logger.error(f"Error loading protocol options: {str(e)}")
             label = Gtk.Label(label=f"Error loading protocol options: {str(e)}")
             self.options_box.pack_start(label, False, False, 0)
             self.options_box.show_all()
+        
+        # Call protocol change callback if set
+        if hasattr(self, 'protocol_change_callback') and self.protocol_change_callback and protocol_name:
+            _, config = self.get_protocol_config()
+            self.protocol_change_callback(protocol_name, config)
 
     def get_protocol_config(self):
         """Get the selected protocol and configuration.
@@ -215,3 +226,25 @@ class ProtocolConfigurator(Gtk.Box):
                 config[option_name] = widget.get_text()
         
         return protocol_name, config 
+
+    def get_selected_protocol(self):
+        """Get the name of the currently selected protocol.
+        
+        Returns:
+            str: Protocol name or None if none selected
+        """
+        return self.protocol_combo.get_active_text()
+
+    def set_on_protocol_change_callback(self, callback):
+        """Set callback for when protocol configuration changes.
+        
+        Args:
+            callback: Function to call with (protocol_name, config_dict)
+        """
+        self.protocol_change_callback = callback
+        
+        # If a protocol is already selected, call the callback immediately
+        protocol_name = self.get_selected_protocol()
+        if protocol_name and callback:
+            _, config = self.get_protocol_config()
+            callback(protocol_name, config) 

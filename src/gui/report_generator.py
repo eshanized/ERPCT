@@ -238,98 +238,52 @@ class ReportGenerator(Gtk.Box):
         scrolled.add(self.report_text)
         
         # Add some sample data
-        self._add_sample_data()
+        # self._add_sample_data()
         
-    def _add_sample_data(self):
-        """Add sample data for demonstration purposes."""
-        # Sample reports
-        self.report_store.append([
-            "report1", 
-            "SSH Brute Force Analysis", 
-            "2023-03-15 14:22", 
-            "Attack Summary", 
-            "192.168.1.10", 
-            25.5, 
-            3
-        ])
+    def _load_real_data(self):
+        """Load real attack data from the results source."""
+        if not self.results_source:
+            self.logger.warning("No results source available, using sample data")
+            return
+            
+        self.logger.info("Loading real attack data from results source")
         
-        self.report_store.append([
-            "report2", 
-            "Web Services Vulnerability Scan", 
-            "2023-03-17 09:35", 
-            "Comprehensive Report", 
-            "example.com", 
-            42.1, 
-            7
-        ])
+        # Clear existing data
+        self.attack_store.clear()
         
-        self.report_store.append([
-            "report3", 
-            "FTP Password Analysis", 
-            "2023-03-20 11:08", 
-            "Password Statistics", 
-            "ftp.example.org", 
-            68.5, 
-            12
-        ])
+        # Get recent attacks from results source
+        attacks = self.results_source.get_recent_attacks(20)
         
-        # Sample attack results
-        self.attack_store.append([
-            False, 
-            "attack1", 
-            "SSH Scan - Server1", 
-            "2023-03-15 13:45", 
-            "SSH", 
-            "192.168.1.10"
-        ])
-        
-        self.attack_store.append([
-            False, 
-            "attack2", 
-            "Web Login - example.com", 
-            "2023-03-17 08:20", 
-            "HTTP", 
-            "example.com"
-        ])
-        
-        self.attack_store.append([
-            False, 
-            "attack3", 
-            "FTP Test - Storage Server", 
-            "2023-03-20 10:30", 
-            "FTP", 
-            "ftp.example.org"
-        ])
-        
+        for attack in attacks:
+            self.attack_store.append([
+                False,  # Not selected by default
+                attack.get('id', ''),
+                attack.get('protocol', '') + ' - ' + attack.get('target', ''),
+                attack.get('timestamp', ''),
+                attack.get('protocol', ''),
+                attack.get('target', '')
+            ])
+            
+        # Load existing reports if any
+        self._refresh_reports()
+            
+    def _refresh_reports(self):
+        """Refresh reports list from actual reports."""
+        if not self.results_source:
+            return
+            
+        try:
+            # In a real implementation, this would load saved reports from storage
+            # For now, we'll keep the existing reports
+            pass
+        except Exception as e:
+            self.logger.error(f"Error refreshing reports: {str(e)}")
+    
     def _on_refresh_reports(self, button):
         """Handle refresh reports button click."""
-        # In a real implementation, this would update the report list from storage
-        self.logger.info("Refreshing report list")
-        
-        # Sample implementation just adds a new sample report
-        import random
-        protocols = ["SSH", "HTTP", "FTP", "SMTP", "MySQL", "PostgreSQL"]
-        targets = ["10.0.0.1", "10.0.0.5", "192.168.1.10", "example.com", "test.local"]
-        
-        protocol = random.choice(protocols)
-        target = random.choice(targets)
-        success_rate = random.uniform(10.0, 90.0)
-        creds_found = random.randint(0, 15)
-        
-        report_id = f"report{len(self.report_store) + 1}"
-        report_name = f"{protocol} Attack on {target}"
-        report_date = datetime.now().strftime("%Y-%m-%d %H:%M")
-        report_type = random.choice(["Attack Summary", "Success Analysis", "Password Statistics"])
-        
-        self.report_store.append([
-            report_id, 
-            report_name, 
-            report_date, 
-            report_type,
-            target, 
-            success_rate, 
-            creds_found
-        ])
+        # Update with real data from results source
+        self._load_real_data()
+        self.logger.info("Refreshed report list and attack data")
         
     def _on_delete_report(self, button):
         """Handle delete report button click."""
@@ -356,10 +310,9 @@ class ReportGenerator(Gtk.Box):
                 # Get the real iterator from the filter model
                 filter_path = model.get_path(iter)
                 filter_iter = model.get_iter(filter_path)
-                child_path = model.convert_iter_to_child_path(filter_iter)
+                child_iter = model.convert_iter_to_child_iter(filter_iter)
                 
                 # Remove from the source model
-                child_iter = self.report_store.get_iter(child_path)
                 self.report_store.remove(child_iter)
                 
                 # Clear report view if it was displaying the deleted report
@@ -655,4 +608,7 @@ class ReportGenerator(Gtk.Box):
             results_source: The results explorer instance to use as data source
         """
         self.results_source = results_source
-        self.logger.info("Results source set for report generator") 
+        self.logger.info("Results source set for report generator")
+        
+        # Load real data now that we have a source
+        self._load_real_data() 

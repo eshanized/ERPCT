@@ -38,14 +38,14 @@ class ProtocolRegistry:
             from src.protocols.ssh import SSH
             self._protocols["ssh"] = SSH
             logger.debug("Registered protocol: ssh")
-        except Exception as e:
+        except ImportError as e:
             logger.error(f"Error loading SSH protocol: {str(e)}")
         
         try:
             from src.protocols.ftp import FTPProtocol
             self._protocols["ftp"] = FTPProtocol
             logger.debug("Registered protocol: ftp")
-        except Exception as e:
+        except ImportError as e:
             logger.error(f"Error loading FTP protocol: {str(e)}")
             
         # Add HTTP Form protocol if it exists
@@ -56,6 +56,16 @@ class ProtocolRegistry:
         except ImportError:
             # Not an error, just not implemented yet
             pass
+            
+        # Add Telnet protocol if telnetlib is available
+        try:
+            import telnetlib  # Check if the module is available
+            from src.protocols.telnet import Telnet
+            self._protocols["telnet"] = Telnet
+            logger.debug("Registered protocol: telnet")
+        except ImportError as e:
+            logger.error(f"Telnet protocol requires telnetlib module: {str(e)}")
+            # Skip telnet registration
     
     def _load_protocol_module(self, module_name: str, class_name: str, protocol_name: str) -> None:
         """Load a protocol module and register it.
@@ -70,9 +80,17 @@ class ProtocolRegistry:
             protocol_class = getattr(module, class_name)
             self._protocols[protocol_name] = protocol_class
             logger.debug(f"Registered protocol: {protocol_name}")
-        except (ImportError, AttributeError) as e:
-            logger.error(f"Failed to load protocol {protocol_name}: {str(e)}")
-            raise
+        except ImportError as e:
+            # Handle missing dependencies by logging but not raising an exception
+            if "No module named" in str(e):
+                logger.error(f"Failed to load protocol {protocol_name}: {str(e)}")
+                return  # Continue without registering this protocol
+            logger.error(f"Error loading protocol {protocol_name}: {str(e)}")
+            # Do not raise the exception to allow other protocols to load
+        except AttributeError as e:
+            logger.error(f"Class {class_name} not found in module {module_name}: {str(e)}")
+            # Do not raise the exception to allow other protocols to load
+            return
     
     def _load_protocols(self) -> None:
         """Load protocols from the configuration file and built-in modules."""
@@ -112,13 +130,16 @@ class ProtocolRegistry:
             Protocol class
             
         Raises:
-            ValueError: If protocol is not found
+            ValueError: If protocol is not found or has missing dependencies
         """
         # Ensure protocols are loaded
         self._load_protocols()
         
         name = name.lower()
         if name not in self._protocols:
+            if name == "telnet":
+                raise ValueError("Protocol 'telnet' requires the telnetlib module which is not available. "
+                                "This module has been deprecated in Python 3.11 and removed in Python 3.13.")
             raise ValueError(f"Protocol '{name}' not found")
         return self._protocols[name]
     

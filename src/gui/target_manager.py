@@ -10,6 +10,7 @@ import os
 import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GLib, Pango
+from src.utils.logging import get_logger
 
 class TargetManager(Gtk.Box):
     """Target configuration panel."""
@@ -18,6 +19,9 @@ class TargetManager(Gtk.Box):
         """Initialize the target manager panel."""
         Gtk.Box.__init__(self, orientation=Gtk.Orientation.VERTICAL, spacing=6)
         self.set_border_width(10)
+        
+        # Initialize logger
+        self.logger = get_logger(__name__)
         
         # Target configuration section
         self._create_target_section()
@@ -301,15 +305,64 @@ class TargetManager(Gtk.Box):
         # Validate target configuration
         config = self.get_target_config()
         
-        # TODO: Implement actual validation
-        dialog = Gtk.MessageDialog(
-            transient_for=self.get_toplevel(),
-            flags=0,
-            message_type=Gtk.MessageType.INFO,
-            buttons=Gtk.ButtonsType.OK,
-            text="Target Configuration"
-        )
-        dialog.format_secondary_text(f"Target configuration validated.")
+        errors = []
+        warnings = []
+        
+        # Validate target
+        if not config.get("target"):
+            errors.append("Target host/IP is required")
+        
+        # Validate port
+        if "port" in config:
+            port = config["port"]
+            if port <= 0 or port > 65535:
+                errors.append(f"Invalid port number: {port}")
+        
+        # Validate credentials
+        if not config.get("username") and not config.get("username_file"):
+            warnings.append("No username specified")
+        
+        if not config.get("password") and not config.get("password_file"):
+            warnings.append("No password specified")
+        
+        # Show validation results
+        if errors:
+            message = "Validation failed:\n" + "\n".join(errors)
+            if warnings:
+                message += "\n\nWarnings:\n" + "\n".join(warnings)
+            
+            dialog = Gtk.MessageDialog(
+                transient_for=self.get_toplevel(),
+                flags=0,
+                message_type=Gtk.MessageType.ERROR,
+                buttons=Gtk.ButtonsType.OK,
+                text="Target Configuration Error"
+            )
+            dialog.format_secondary_text(message)
+            self.logger.error(f"Target validation failed: {errors}")
+        elif warnings:
+            message = "Validation passed with warnings:\n" + "\n".join(warnings)
+            dialog = Gtk.MessageDialog(
+                transient_for=self.get_toplevel(),
+                flags=0,
+                message_type=Gtk.MessageType.WARNING,
+                buttons=Gtk.ButtonsType.OK,
+                text="Target Configuration Warning"
+            )
+            dialog.format_secondary_text(message)
+            self.logger.warning(f"Target validation warnings: {warnings}")
+        else:
+            message = "Target configuration is valid."
+            dialog = Gtk.MessageDialog(
+                transient_for=self.get_toplevel(),
+                flags=0,
+                message_type=Gtk.MessageType.INFO,
+                buttons=Gtk.ButtonsType.OK,
+                text="Target Configuration Valid"
+            )
+            dialog.format_secondary_text(message)
+            self.logger.info("Target validation successful")
+        
         dialog.run()
         dialog.destroy()
     
@@ -321,26 +374,107 @@ class TargetManager(Gtk.Box):
         """
         config = {}
         
-        # Target configuration
+        # Target
         if self.single_radio.get_active():
-            config["target"] = self.host_entry.get_text()
-            port = self.port_entry.get_text()
+            # Single target
+            target = self.host_entry.get_text().strip()
+            port = self.port_entry.get_text().strip()
+            
+            # Set target and port if provided
+            config["target"] = target  # Always set target field, even if empty
+            
             if port:
-                config["port"] = int(port)
+                try:
+                    port_num = int(port)
+                    if 1 <= port_num <= 65535:
+                        config["port"] = port_num
+                    else:
+                        config["port"] = 0  # Invalid port range
+                        self.logger.warning(f"Invalid port number: {port}")
+                except ValueError:
+                    config["port"] = 0  # Invalid port
+                    self.logger.warning(f"Invalid port format: {port}")
+            else:
+                # Set default port based on common protocols
+                if hasattr(self, 'parent_window') and hasattr(self.parent_window, 'protocol_configurator'):
+                    protocol = self.parent_window.protocol_configurator.get_selected_protocol()
+                    if protocol == "ssh":
+                        config["port"] = 22
+                    elif protocol == "ftp":
+                        config["port"] = 21
+                    elif protocol == "telnet":
+                        config["port"] = 23
+                    elif protocol == "http":
+                        config["port"] = 80
+                    elif protocol == "https":
+                        config["port"] = 443
+                    else:
+                        config["port"] = 0
         else:
-            config["target_file"] = self.file_entry.get_text()
+            # Target list from file
+            target_file = self.file_entry.get_text().strip()
+            if target_file and os.path.exists(target_file):
+                config["target_file"] = target_file
+                
+                # Try to read the first target from file to set as current target
+                try:
+                    with open(target_file, 'r') as f:
+                        first_line = f.readline().strip()
+                        if first_line:
+                            parts = first_line.split(':', 1)
+                            config["target"] = parts[0].strip()
+                            if len(parts) > 1 and parts[1].strip():
+                                try:
+                                    config["port"] = int(parts[1].strip())
+                                except ValueError:
+                                    config["port"] = 0
+                except Exception as e:
+                    self.logger.error(f"Error reading target file: {e}")
+                    config["target"] = ""
+            else:
+                config["target"] = ""  # Ensure target key exists even if empty
+                self.logger.warning(f"Target file not found or not specified: {target_file}")
         
-        # Username configuration
+        # Credentials
         if self.single_username_radio.get_active():
-            config["username"] = self.username_entry.get_text()
+            # Single username
+            username = self.username_entry.get_text().strip()
+            config["username"] = username
         else:
-            config["username_list"] = self.username_file_entry.get_text()
+            # Username list from file
+            username_file = self.username_file_entry.get_text().strip()
+            if username_file and os.path.exists(username_file):
+                config["username_file"] = username_file
+                # Try to read the first username from file
+                try:
+                    with open(username_file, 'r') as f:
+                        config["username"] = f.readline().strip()
+                except Exception as e:
+                    self.logger.error(f"Error reading username file: {e}")
+                    config["username"] = ""
+            else:
+                config["username"] = ""
+                self.logger.warning(f"Username file not found or not specified: {username_file}")
         
-        # Password configuration
         if self.single_password_radio.get_active():
-            config["password"] = self.password_entry.get_text()
+            # Single password
+            password = self.password_entry.get_text()
+            config["password"] = password
         else:
-            config["wordlist"] = self.password_file_entry.get_text()
+            # Password list from file
+            password_file = self.password_file_entry.get_text().strip()
+            if password_file and os.path.exists(password_file):
+                config["password_file"] = password_file
+                # Try to read the first password from file
+                try:
+                    with open(password_file, 'r') as f:
+                        config["password"] = f.readline().strip()
+                except Exception as e:
+                    self.logger.error(f"Error reading password file: {e}")
+                    config["password"] = ""
+            else:
+                config["password"] = ""
+                self.logger.warning(f"Password file not found or not specified: {password_file}")
         
         return config
     
@@ -351,3 +485,43 @@ class TargetManager(Gtk.Box):
             callback: Function to call when configuration changes
         """
         self.on_target_change_callback = callback
+
+    def update_port_for_protocol(self, protocol_name):
+        """Update port field with default for selected protocol.
+        
+        Args:
+            protocol_name: Name of selected protocol
+        """
+        # Only update if single target is selected and port is empty
+        if not self.single_radio.get_active() or self.port_entry.get_text().strip():
+            return
+        
+        # Set default port based on protocol
+        default_port = None
+        if protocol_name == "ssh":
+            default_port = 22
+        elif protocol_name == "ftp":
+            default_port = 21
+        elif protocol_name == "telnet":
+            default_port = 23
+        elif protocol_name == "http":
+            default_port = 80
+        elif protocol_name == "https":
+            default_port = 443
+        elif protocol_name == "smb":
+            default_port = 445
+        elif protocol_name == "ldap":
+            default_port = 389
+        elif protocol_name == "rdp":
+            default_port = 3389
+        elif protocol_name == "mysql":
+            default_port = 3306
+        elif protocol_name == "postgresql":
+            default_port = 5432
+        elif protocol_name == "mssql":
+            default_port = 1433
+        
+        # Update port entry if we have a default
+        if default_port:
+            self.port_entry.set_text(str(default_port))
+            self.logger.debug(f"Updated port to {default_port} for {protocol_name} protocol")

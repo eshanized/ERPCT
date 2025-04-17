@@ -28,7 +28,7 @@
       "name": "http",
       "display_name": "HTTP",
       "module": "src.protocols.http",
-      "class": "HTTPProtocol",
+      "class": "HTTP",
       "description": "HTTP Basic Authentication",
       "category": "web"
     },
@@ -36,7 +36,7 @@
       "name": "https",
       "display_name": "HTTPS",
       "module": "src.protocols.https",
-      "class": "HTTPSProtocol",
+      "class": "HTTPS",
       "description": "HTTPS Secure Web Protocol",
       "category": "web"
     },
@@ -44,7 +44,7 @@
       "name": "rdp",
       "display_name": "RDP",
       "module": "src.protocols.rdp",
-      "class": "RDPProtocol",
+      "class": "RDP",
       "description": "Remote Desktop Protocol",
       "category": "remote_access"
     },
@@ -52,7 +52,7 @@
       "name": "smb",
       "display_name": "SMB",
       "module": "src.protocols.smb",
-      "class": "SMBProtocol",
+      "class": "SMB",
       "description": "Server Message Block file sharing protocol",
       "category": "file_transfer"
     },
@@ -60,7 +60,7 @@
       "name": "smtp",
       "display_name": "SMTP",
       "module": "src.protocols.smtp",
-      "class": "SMTPProtocol",
+      "class": "SMTP",
       "description": "Simple Mail Transfer Protocol",
       "category": "mail"
     },
@@ -68,7 +68,7 @@
       "name": "pop3",
       "display_name": "POP3",
       "module": "src.protocols.pop3",
-      "class": "POP3Protocol",
+      "class": "POP3",
       "description": "Post Office Protocol version 3",
       "category": "mail"
     },
@@ -76,7 +76,7 @@
       "name": "imap",
       "display_name": "IMAP",
       "module": "src.protocols.imap",
-      "class": "IMAPProtocol",
+      "class": "IMAP",
       "description": "Internet Message Access Protocol",
       "category": "mail"
     },
@@ -84,7 +84,7 @@
       "name": "ldap",
       "display_name": "LDAP",
       "module": "src.protocols.ldap",
-      "class": "LDAPProtocol",
+      "class": "LDAP",
       "description": "Lightweight Directory Access Protocol",
       "category": "directory_services"
     },
@@ -92,7 +92,7 @@
       "name": "mysql",
       "display_name": "MySQL",
       "module": "src.protocols.mysql",
-      "class": "MySQLProtocol",
+      "class": "MySQL",
       "description": "MySQL Database Server",
       "category": "database"
     },
@@ -100,7 +100,7 @@
       "name": "postgres",
       "display_name": "PostgreSQL",
       "module": "src.protocols.postgres",
-      "class": "PostgreSQLProtocol",
+      "class": "PostgreSQL",
       "description": "PostgreSQL Database Server",
       "category": "database"
     },
@@ -108,7 +108,7 @@
       "name": "telnet",
       "display_name": "Telnet",
       "module": "src.protocols.telnet",
-      "class": "TelnetProtocol",
+      "class": "Telnet",
       "description": "Telnet remote access protocol",
       "category": "remote_access"
     },
@@ -116,7 +116,7 @@
       "name": "vnc",
       "display_name": "VNC",
       "module": "src.protocols.vnc",
-      "class": "VNCProtocol",
+      "class": "VNC",
       "description": "Virtual Network Computing",
       "category": "remote_access"
     }

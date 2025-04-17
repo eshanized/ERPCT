@@ -11,6 +11,7 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GLib
 
 from src.protocols import protocol_registry
+from src.utils.logging import get_logger
 
 
 class AttackPanel(Gtk.Box):
@@ -20,6 +21,9 @@ class AttackPanel(Gtk.Box):
         """Initialize the attack panel."""
         Gtk.Box.__init__(self, orientation=Gtk.Orientation.VERTICAL, spacing=6)
         self.set_border_width(10)
+        
+        # Initialize logger
+        self.logger = get_logger(__name__)
         
         # Attack configuration section
         self._create_protocol_selector()
@@ -33,6 +37,13 @@ class AttackPanel(Gtk.Box):
         
         # Callback for when attack is started
         self.start_attack_callback = None
+        
+        # Select the first protocol by default if available
+        if len(self.protocol_store) > 0:
+            self.protocol_combo.set_active(0)
+            self.logger.debug("Selected first protocol by default")
+        else:
+            self.logger.warning("No protocols available to select")
     
     def _create_protocol_selector(self):
         """Create protocol selection widgets."""
@@ -177,7 +188,8 @@ class AttackPanel(Gtk.Box):
             "threads": self.threads_spin.get_value_as_int(),
             "delay": self.delay_spin.get_value(),
             "timeout": self.timeout_spin.get_value_as_int(),
-            "username_first": self.username_first_radio.get_active()
+            "username_first": self.username_first_radio.get_active(),
+            "protocol": ""  # Default to empty string
         }
         
         # Get selected protocol
@@ -185,6 +197,20 @@ class AttackPanel(Gtk.Box):
         if tree_iter is not None:
             model = self.protocol_combo.get_model()
             config["protocol"] = model[tree_iter][0]
+            self.logger.debug(f"Selected protocol: {config['protocol']}")
+        else:
+            # If no protocol is selected but there are protocols available, select the first one
+            if len(self.protocol_store) > 0:
+                self.protocol_combo.set_active(0)
+                tree_iter = self.protocol_combo.get_active_iter()
+                if tree_iter is not None:
+                    model = self.protocol_combo.get_model()
+                    config["protocol"] = model[tree_iter][0]
+                    self.logger.debug(f"Automatically selected protocol: {config['protocol']}")
+                else:
+                    self.logger.warning("Failed to select protocol automatically")
+            else:
+                self.logger.warning("No protocols available")
         
         return config
     

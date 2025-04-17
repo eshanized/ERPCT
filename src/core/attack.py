@@ -249,11 +249,45 @@ class Attack:
         self.attack_id = None
     
     def _validate_config(self) -> None:
-        """Validate attack configuration."""
-        required_fields = ["target"]
-        for field in required_fields:
-            if field not in self.config:
-                raise ValueError(f"Missing required configuration field: {field}")
+        """Validate attack configuration.
+        
+        Raises:
+            ValueError: If configuration is invalid
+        """
+        # Check for required fields
+        if not self.config.get("protocol"):
+            raise ValueError("Protocol must be specified")
+        
+        # Check if we have a target directly or in a file
+        if not self.config.get("target") and not self.config.get("target_file"):
+            raise ValueError("Target host/IP must be specified")
+        
+        # Validate credentials source - we need either a username/password or files for them
+        if not self.config.get("username") and not self.config.get("username_file"):
+            raise ValueError("Username must be specified or a username file must be provided")
+        
+        if not self.config.get("password") and not self.config.get("password_file"):
+            raise ValueError("Password must be specified or a password file must be provided")
+        
+        # Validate port if specified
+        if "port" in self.config:
+            port = self.config["port"]
+            if not isinstance(port, int) or port <= 0 or port > 65535:
+                raise ValueError(f"Invalid port number: {port}")
+        
+        # Validate thread count
+        threads = int(self.config.get("threads", 1))
+        if threads < 1:
+            self.config["threads"] = 1
+            self.logger.warning("Thread count adjusted to minimum value of 1")
+        elif threads > 100:
+            self.config["threads"] = 100
+            self.logger.warning("Thread count capped at maximum value of 100")
+        
+        # Set default timeout if not specified
+        if "timeout" not in self.config:
+            self.config["timeout"] = 30
+            self.logger.debug("Using default timeout of 30 seconds")
     
     def _load_credentials(self) -> None:
         """Load usernames and passwords from configuration."""

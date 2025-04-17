@@ -165,6 +165,13 @@ class ERPCTMainWindow(Gtk.ApplicationWindow):
             system_monitor=self._get_system_monitor()
         )
         
+        # Set target manager's parent reference
+        self.target_manager.parent_window = self
+        
+        # Set protocol change callback
+        if hasattr(self.protocol_configurator, 'set_on_protocol_change_callback'):
+            self.protocol_configurator.set_on_protocol_change_callback(self._on_protocol_change)
+        
         # Connect other components as needed
         self.log_viewer.start_log_monitoring()
     
@@ -182,6 +189,13 @@ class ERPCTMainWindow(Gtk.ApplicationWindow):
         try:
             # Get target configuration
             target_config = self.target_manager.get_target_config()
+            
+            # Validate required fields
+            if not attack_config.get("protocol"):
+                raise ValueError("Protocol must be specified")
+            
+            if not target_config.get("target"):
+                raise ValueError("Target host/IP must be specified")
             
             # Merge configurations
             config = {**target_config, **attack_config}
@@ -288,17 +302,24 @@ class ERPCTMainWindow(Gtk.ApplicationWindow):
         attack_config = self.attack_panel.get_attack_config()
         protocol_config = self.protocol_configurator.get_protocol_config()
         
-        # Merge configurations
-        config = {
-            **target_config, 
-            **attack_config,
-            "protocol_name": protocol_config[0],
-            "protocol_config": protocol_config[1],
-            "distributed": True,
-            "distributed_config": distributed_config
-        }
-        
         try:
+            # Validate required fields
+            if not protocol_config or not protocol_config[0]:
+                raise ValueError("Protocol must be specified")
+            
+            if not target_config.get("target"):
+                raise ValueError("Target host/IP must be specified")
+            
+            # Merge configurations
+            config = {
+                **target_config, 
+                **attack_config,
+                "protocol_name": protocol_config[0],
+                "protocol_config": protocol_config[1],
+                "distributed": True,
+                "distributed_config": distributed_config
+            }
+            
             # Create attack instance with distributed config
             from src.core.distributed import DistributedAttackController
             self.distributed_controller = DistributedAttackController(config)
@@ -343,16 +364,23 @@ class ERPCTMainWindow(Gtk.ApplicationWindow):
         attack_config = self.attack_panel.get_attack_config()
         protocol_config = self.protocol_configurator.get_protocol_config()
         
-        # Merge configurations
-        config = {
-            **target_config, 
-            **attack_config,
-            "protocol_name": protocol_config[0],
-            "protocol_config": protocol_config[1],
-            "schedule": schedule_config
-        }
-        
         try:
+            # Validate required fields
+            if not protocol_config or not protocol_config[0]:
+                raise ValueError("Protocol must be specified")
+            
+            if not target_config.get("target"):
+                raise ValueError("Target host/IP must be specified")
+            
+            # Merge configurations
+            config = {
+                **target_config, 
+                **attack_config,
+                "protocol_name": protocol_config[0],
+                "protocol_config": protocol_config[1],
+                "schedule": schedule_config
+            }
+            
             from src.core.scheduler import TaskScheduler as CoreScheduler
             scheduler = CoreScheduler()
             task_id = scheduler.schedule_task(config)
@@ -417,6 +445,23 @@ class ERPCTMainWindow(Gtk.ApplicationWindow):
         """
         from src.utils.system_monitor import SystemMonitor
         return SystemMonitor()
+
+    def _on_protocol_change(self, protocol_name, protocol_config):
+        """Handle protocol configuration change.
+        
+        Args:
+            protocol_name: Name of selected protocol
+            protocol_config: Protocol configuration
+        """
+        self.logger.debug(f"Protocol changed to {protocol_name}")
+        
+        # Update target port based on protocol
+        if protocol_name and hasattr(self.target_manager, 'update_port_for_protocol'):
+            self.target_manager.update_port_for_protocol(protocol_name)
+        
+        # Update attack panel for protocol-specific options
+        if protocol_name and hasattr(self.attack_panel, 'update_for_protocol'):
+            self.attack_panel.update_for_protocol(protocol_name, protocol_config)
 
 
 class ERPCTApplication(Gtk.Application):
