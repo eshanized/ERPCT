@@ -42,14 +42,16 @@ class HTTPFormProtocol(ProtocolBase):
         
         # Method and form data
         self.method = config.get("method", "POST").upper()
-        self.form_data = config.get("form_data", "")
-        if not self.form_data:
+        self.form_data = config.get("form_data", "username=^USER^&password=^PASS^")
+        
+        # During actual credential testing (not during UI initialization), form_data must be specified
+        if "username" in config and "password" in config and not self.form_data:
             raise ValueError("Form data must be specified for HTTP Form protocol")
             
         # Success and failure patterns
         self.success_match = config.get("success_match")
         self.failure_match = config.get("failure_match")
-        if not self.success_match and not self.failure_match:
+        if "username" in config and "password" in config and not self.success_match and not self.failure_match:
             raise ValueError("Either success_match or failure_match must be specified")
         
         # CSRF token handling
