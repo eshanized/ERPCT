@@ -347,8 +347,8 @@ class LogViewer(Gtk.Box):
             if match:
                 timestamp, level, module, message = match.groups()
                 
-                # Apply level filter
-                if level_filter != "All" and level != level_filter:
+                # Apply filters - skip if level doesn't match or search filter doesn't match
+                if level_filter != "All" and level.upper() != level_filter.upper():
                     continue
                 
                 # Apply search filter
@@ -402,7 +402,9 @@ class LogViewer(Gtk.Box):
             else:
                 # If line doesn't match pattern, add it as plain text
                 # Apply filters
-                if level_filter != "All" or (search_filter and search_filter.lower() not in line.lower()):
+                if level_filter != "All" and level_filter.upper() != "ALL":
+                    continue
+                if search_filter and search_filter.lower() not in line.lower():
                     continue
                     
                 end_iter = self.log_buffer.get_end_iter()

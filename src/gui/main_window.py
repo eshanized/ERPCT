@@ -269,17 +269,42 @@ class ERPCTMainWindow(Gtk.ApplicationWindow):
             dialog.run()
             dialog.destroy()
     
-    def add_scan_target(self, target_data):
-        """Add a target discovered by the network scanner.
+    def add_scan_target(self, ip_address, port=None, protocol=None):
+        """Add a scan target to the target list.
         
         Args:
-            target_data: Dictionary with target information
+            ip_address: IP address of the target
+            port: Optional port number
+            protocol: Optional protocol
         """
-        self.target_manager.add_target(target_data)
-        # Switch to target tab
-        self.notebook.set_current_page(1)  # Target tab index
+        self.logger.debug(f"Adding target: {ip_address}")
+        # TODO: Implement target management
+        pass
         
-        self.logger.info(f"Added target from scanner: {target_data.get('host', '')}")
+    def scan_specific_ip(self, ip_address):
+        """Scan a specific IP address directly.
+        
+        Args:
+            ip_address: The IP address to scan
+            
+        Returns:
+            bool: True if scan started successfully, False otherwise
+        """
+        self.logger.info(f"Starting scan for specific IP: {ip_address}")
+        
+        # Switch to the scanner tab
+        notebook = self.get_child()
+        for i in range(notebook.get_n_pages()):
+            if isinstance(notebook.get_nth_page(i), NetworkScanner):
+                notebook.set_current_page(i)
+                break
+                
+        # Call the scan method on the network scanner
+        if hasattr(self, 'network_scanner'):
+            return self.network_scanner.scan_target_ip(ip_address)
+        else:
+            self.logger.error("Network scanner not initialized")
+            return False
     
     def start_distributed_attack(self, distributed_config):
         """Start a distributed attack.
